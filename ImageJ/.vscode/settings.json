@@ -1,0 +1,9 @@
+{
+    "cSpell.words": [
+        "DDCJ"
+    ],
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "ij.jar"
+    ]
+}
