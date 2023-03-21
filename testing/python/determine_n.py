@@ -21,20 +21,30 @@ for i in range(int((5000 / 250) + 1)):
 bins.append(math.inf)
 bins = np.array(bins)
 
+z2_list = []
+d1_list = []
+for i in range(len(loc_final)):
+    fInfo = frame_info[i]
+    X = np.hstack((np.zeros((fInfo.shape[1], 1)), fInfo.reshape(fInfo.shape[1], 1)))
+    z2 = scipy.spatial.distance.pdist(X)
+    d = scipy.spatial.distance.pdist(loc_final[i])
+    
+    z2_list.append(z2)
+    d1_list.append(d)
+
 for i in range(1, NFTP, GAP):
     print(f'Progress: {i / NFTP}')
     total_blink = np.array([])
     
     for j in range(len(loc_final)):
-        fInfo = frame_info[j]
-        X = np.hstack((np.zeros((fInfo.shape[1], 1)), fInfo.reshape(fInfo.shape[1], 1)))
-        print(X.shape)
-        z2 = scipy.spatial.distance.pdist(X)
-        d = scipy.spatial.distance.pdist(loc_final[j])
-        d = d[z2 == i]
+        #fInfo = frame_info[j]
+        #X = np.hstack((np.zeros((fInfo.shape[1], 1)), fInfo.reshape(fInfo.shape[1], 1)))
+        #z2 = scipy.spatial.distance.pdist(X)
+        #d = scipy.spatial.distance.pdist(loc_final[j])
+        d = d1_list[j][z2_list[j] == i]
+        #d = d[z2 == i]
         
         total_blink = np.concatenate([total_blink, d], axis=None)
-    break
     hist, _ = np.histogram(total_blink, bins)
 
     cdf = np.ndarray(shape=(hist.shape[0]))
@@ -52,6 +62,8 @@ for i in range(len(cum_sum_store)):
 
 plt.plot(frameStore, Z)
 plt.show()
+print(Z)
 
 # matlab: 1.20m
 # python 2.20m (no multiprocessing)
+# python without redundancy: very fast (not plugged in)
