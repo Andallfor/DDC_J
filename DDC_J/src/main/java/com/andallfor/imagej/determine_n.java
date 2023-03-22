@@ -11,6 +11,7 @@ import com.jmatio.types.MLDouble;
 
 import ij.IJ;
 import ij.ImageJ;
+import ij.gui.Plot;
 import ij.plugin.PlugIn;
 
 public class determine_n implements PlugIn {
@@ -91,11 +92,17 @@ public class determine_n implements PlugIn {
 
         // calculate Z
         double[] Z = new double[nIter];
+        double[] frame_store = new double[nIter];
         for (int i = 0; i < nIter; i++) {
             double sum = 0;
             for (int j = 0; j < nBins - 1; j++) sum += Math.abs(cum_sum_store[0][j] - cum_sum_store[i][j]);
             Z[i] = sum;
+            frame_store[i] = i * GAP + 1;
         }
+
+        Plot p = new Plot("Determine N", "Frame", "Z");
+        p.addPoints(frame_store, Z, Plot.LINE);
+        p.show();
     }
 
     private double dist(double[] a, double[] b) {

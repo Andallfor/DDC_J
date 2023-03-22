@@ -69,6 +69,7 @@ print(Z)
 # matlab: 1.20m
 # python 2.20m (no multiprocessing)
 # python without redundancy: very fast (not plugged in)
+# java naive 8.2s
 
 # java 1. 239520
 # python 1. 88
