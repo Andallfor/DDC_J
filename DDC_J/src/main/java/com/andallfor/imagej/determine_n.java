@@ -21,7 +21,7 @@ public class determine_n implements PlugIn {
     public void run(String arg) {
         GenericDialog gd = new GenericDialog("Determine N Parameters");
         gd.addMessage("Parameters to determine the size of N.");
-        gd.addHelp("TODO"); // add url after code is uploaded
+        gd.addHelp("https://github.com/Andallfor/DDC_J/blob/main/papers/DDC%20User%20Guide%20(GO%20HERE).pdf");
         gd.addFileField("File to Parse", "");
         gd.addNumericField("NFTP", NFTP, 0);
         gd.addNumericField("GAP", GAP, 0);
