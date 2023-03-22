@@ -36,7 +36,6 @@ public class determine_n implements PlugIn {
         for (int i = 0; i < nBins - 1; i++) bins[i] = i * 250;
         bins[nBins - 1] = Integer.MAX_VALUE;
 
-        double[][] cum_sum_store = new double[nIter][nBins - 1];
         int[][] iterationBins = new int[nIter][nBins - 1];
 
         // need to calculate for every frameInfo instance (frameInfo and locFinal have same length)
@@ -62,8 +61,7 @@ public class determine_n implements PlugIn {
 
                         // determine iteration as tech each frameDist needs to only be sorted with similar frameDist
                         int n = (int) (frameDist - 1) / GAP;
-
-                        if (n * GAP > NFTP - 1) continue;
+                        if (n >= nIter) continue;
 
                         // determine which bin it goes into
                         // bins are [start, end)
@@ -77,23 +75,33 @@ public class determine_n implements PlugIn {
             }
         }
 
-        for (int i = 0; i < iterationBins.length; i++) {
-            System.out.println("" + i + " " + Arrays.toString(iterationBins[i]));
+        // calculate CDF
+        double[][] cum_sum_store = new double[nIter][nBins - 1];
+        for (int i = 0; i < nIter; i++) {
+            // get sum
+            double sum = 0;
+            for (int ii : iterationBins[i]) sum += ii;
+
+            double last = 0;
+            for (int j = 0; j < nBins - 1; j++) {
+                cum_sum_store[i][j] = last + iterationBins[i][j] / sum;
+                last = cum_sum_store[i][j];
+            }
+        }
+
+        // calculate Z
+        double[] Z = new double[nIter];
+        for (int i = 0; i < nIter; i++) {
+            double sum = 0;
+            for (int j = 0; j < nBins - 1; j++) sum += Math.abs(cum_sum_store[0][j] - cum_sum_store[i][j]);
+            Z[i] = sum;
         }
     }
 
     private double dist(double[] a, double[] b) {
         double interior = 0;
-        for (int i = 0; i < a.length; i++) {
-            interior += (a[i] - b[i]) * (a[i] - b[i]);
-        }
-
+        for (int i = 0; i < a.length; i++) interior += (a[i] - b[i]) * (a[i] - b[i]);
         return Math.sqrt(interior);
-    }
-
-    private int sumFactorial(int x) {
-        if (x % 2 == 0) return (x + 1) * (x / 2);
-        return (x + 1) * ((x - 1) / 2) + ((x + 1) / 2);
     }
 
     public static void main(String[] args) throws Exception {

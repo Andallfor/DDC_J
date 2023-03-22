@@ -48,7 +48,6 @@ for i in range(1, NFTP, GAP):
         
         total_blink = np.concatenate([total_blink, d], axis=None)
     hist, _ = np.histogram(total_blink, bins)
-    print(hist)
 
     cdf = np.ndarray(shape=(hist.shape[0]))
     prev = 0
