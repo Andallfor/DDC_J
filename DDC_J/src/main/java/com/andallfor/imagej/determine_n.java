@@ -11,19 +11,46 @@ import com.jmatio.types.MLDouble;
 
 import ij.IJ;
 import ij.ImageJ;
+import ij.gui.GenericDialog;
 import ij.gui.Plot;
 import ij.plugin.PlugIn;
 
 public class determine_n implements PlugIn {
-    static final int NFTP = 1000, GAP = 10, binMax = 5000, binSize = 250;
-    static final String testMat = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
+    static int NFTP = 1000, GAP = 10, binMax = 5000, binSize = 250;
 
     public void run(String arg) {
-        assert (binMax % binSize) == 0;
+        GenericDialog gd = new GenericDialog("Determine N Parameters");
+        gd.addMessage("Parameters to determine the size of N.");
+        gd.addHelp("TODO"); // add url after code is uploaded
+        gd.addFileField("File to Parse", "");
+        gd.addNumericField("NFTP", NFTP, 0);
+        gd.addNumericField("GAP", GAP, 0);
+        gd.addNumericField("Bin Max", binMax, 0);
+        gd.addNumericField("Bin Size", binSize, 0);
+
+        gd.showDialog();
+
+        String filePath = "";
+
+        if (gd.wasOKed()) {
+            filePath = gd.getNextString();
+            NFTP = (int) gd.getNextNumber();
+            GAP = (int) gd.getNextNumber();
+            binMax = (int) gd.getNextNumber();
+            binSize = (int) gd.getNextNumber();
+        } else if (gd.wasCanceled()) return;
+
+        // validate
+        if (NFTP % GAP != 0) {IJ.showMessage("NFTP must be divisible by GAP."); return;}
+        if (binMax % binSize != 0) {IJ.showMessage("Bin max must be divisible by bin size"); return;}
+        if (binMax < binSize) {IJ.showMessage("Bin max must be greater than bin size"); return;}
 
         MatFileReader mfr = null;
-        try {mfr = new MatFileReader(testMat);}
-        catch (IOException e) {return;}
+        try {mfr = new MatFileReader(filePath);}
+        catch (IOException e) {
+            IJ.showMessage("Invalid File Path");
+            return;
+        }
 
         MLCell FRAME_INFO = (MLCell) mfr.getMLArray("Frame_Information");
         MLCell LOC_FINAL = (MLCell) mfr.getMLArray("LocalizationsFinal");
@@ -39,6 +66,10 @@ public class determine_n implements PlugIn {
 
         int[][] iterationBins = new int[nIter][nBins - 1];
 
+        IJ.showProgress(0);
+
+        // can multithread this with a few changes (need a way to track index)
+        // will prob have to write own 
         // need to calculate for every frameInfo instance (frameInfo and locFinal have same length)
         for (int i = 0; i < expectedSize[1]; i++) {
             double[] data = ((MLDouble) FRAME_INFO.get(i)).getArray()[0];
@@ -74,6 +105,8 @@ public class determine_n implements PlugIn {
                     }
                 }
             }
+
+            IJ.showProgress((double) i / expectedSize[1]);
         }
 
         // calculate CDF
@@ -99,6 +132,8 @@ public class determine_n implements PlugIn {
             Z[i] = sum;
             frame_store[i] = i * GAP + 1;
         }
+
+        IJ.showProgress(1);
 
         Plot p = new Plot("Determine N", "Frame", "Z");
         p.addPoints(frame_store, Z, Plot.LINE);
