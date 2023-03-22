@@ -22,21 +22,18 @@ for i in range(int((5000 / 250) + 1)):
 bins.append(math.inf)
 bins = np.array(bins)
 
-startTime = time.time()
 z2_list = []
 d1_list = []
-for ii in range(20):
-    for i in range(len(loc_final)):
-        fInfo = frame_info[i]
-        X = np.hstack((np.zeros((fInfo.shape[1], 1)), fInfo.reshape(fInfo.shape[1], 1)))
-        z2 = scipy.spatial.distance.pdist(X)
-        d = scipy.spatial.distance.pdist(loc_final[i])
-        
-        z2_list.append(z2)
-        d1_list.append(d)
-        d = d[z2 == 1]
+for i in range(len(loc_final)):
+    fInfo = frame_info[i]
+    X = np.hstack((np.zeros((fInfo.shape[1], 1)), fInfo.reshape(fInfo.shape[1], 1)))
+    z2 = scipy.spatial.distance.pdist(X)
+    d = scipy.spatial.distance.pdist(loc_final[i])
+    
+    z2_list.append(z2)
+    d1_list.append(d)
+    d = d[z2 == 1]
 
-print(time.time() - startTime)
 for i in range(1, NFTP, GAP):
     print(f'Progress: {i / NFTP}')
     total_blink = np.array([])
@@ -51,6 +48,7 @@ for i in range(1, NFTP, GAP):
         
         total_blink = np.concatenate([total_blink, d], axis=None)
     hist, _ = np.histogram(total_blink, bins)
+    print(hist)
 
     cdf = np.ndarray(shape=(hist.shape[0]))
     prev = 0

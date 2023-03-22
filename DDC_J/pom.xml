@@ -74,25 +74,10 @@
 	</properties>
 
 	<dependencies>
-
-		<dependency>
-			<groupId>org.ojalgo</groupId>
-			<artifactId>ojalgo-extensions</artifactId>
-			<version>2.47.3</version>
-			<type>pom</type>
-		</dependency>
-
-
 		<dependency>
 			<groupId>com.diffplug.matsim</groupId>
 			<artifactId>jmatio</artifactId>
 			<version>1.2.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.ojalgo</groupId>
-			<artifactId>ojalgo</artifactId>
-			<version>52.0.1</version>
 		</dependency>
 
 		<dependency>

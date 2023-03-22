@@ -3,19 +3,9 @@ package com.andallfor.imagej;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import org.ojalgo.array.SparseArray;
-import org.ojalgo.array.SparseArray.NonzeroView;
-import org.ojalgo.function.PrimitiveFunction;
-import org.ojalgo.function.constant.PrimitiveMath;
-import org.ojalgo.matrix.Primitive64Matrix;
-import org.ojalgo.matrix.store.ElementsSupplier;
-import org.ojalgo.matrix.store.MatrixStore;
-import org.ojalgo.matrix.store.SparseStore;
-import org.ojalgo.structure.Access1D;
+import java.util.HashMap;
 
 import com.jmatio.io.MatFileReader;
-import com.jmatio.types.MLArray;
 import com.jmatio.types.MLCell;
 import com.jmatio.types.MLDouble;
 
@@ -24,10 +14,12 @@ import ij.ImageJ;
 import ij.plugin.PlugIn;
 
 public class determine_n implements PlugIn {
-    static final int NFTP = 1000, GAP = 10;
+    static final int NFTP = 1000, GAP = 10, binMax = 5000, binSize = 250;
     static final String testMat = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
 
     public void run(String arg) {
+        assert (binMax % binSize) == 0;
+
         MatFileReader mfr = null;
         try {mfr = new MatFileReader(testMat);}
         catch (IOException e) {return;}
@@ -39,101 +31,54 @@ public class determine_n implements PlugIn {
         assert Arrays.equals(LOC_FINAL.getDimensions(), expectedSize);
 
         final int nIter = (int) Math.ceil((double) NFTP / GAP);
-        final int nBins = (5000 / 250) + 1 + 1; // +1 to include end, +1 to end with inf
+        final int nBins = (binMax / binSize) + 1 + 1; // +1 to include end, +1 to end with inf
         int[] bins = new int[nBins];
         for (int i = 0; i < nBins - 1; i++) bins[i] = i * 250;
         bins[nBins - 1] = Integer.MAX_VALUE;
 
         double[][] cum_sum_store = new double[nIter][nBins - 1];
-        int[] frame_store = new int[nIter];
+        int[][] iterationBins = new int[nIter][nBins - 1];
 
-        /**
-         * this is a terrible hack, please find a workaround
-         * we need a way to track all values that satisfy ((x - 1) % GAP) == 0
-         * .nonzeros() does not actually track nonzero values, but instead null values that are
-         *  instantiated at init of the sparse data structure. I seem to be unable to reinsert empty values
-         *  so .nonzeros() will always return the entire array, defeating the entire point of using sparse
-         *  however the problem still remains- we need to track the index of all values that satisfy the above condition
-         *  (this is represented in the array by non-zero values). Rather than iterate through the entire array
-         *  we just record them whenever we process a valid value. This is done through the below function.
-         *  However here too we have to use a hack. We are not allowed to modify exterior variables from within a lambda,
-         *  specifically that they must be final. So, to track our current index we use a custom class which very literally
-         *  has only one int parameter. Because we can modify the instance values of a final class, we are now able to track the
-         *  index through incrementing the instance variable every iteration.
-         * Of course this raises the issue of if .onAll (which is used to apply the function) is predictable or not.
-         *  At least from my basic tests, it seems to be so. (which raises another issue- wouldn't that mean .onAll is not
-         *  threaded???? and therefore would be better to just write my own implementation????)
-         * Perhaps it would be worth it to look into creating a custom matrix store
-         **/
-        final incrementor inc = new incrementor();
-        final ArrayList<Integer> indexCount = new ArrayList<>();
-        PrimitiveFunction.Unary valid = (x) -> {
-            inc.i++;
-            //if ((x - 1) % GAP == 0) {
-            if (x == 1) {
-                indexCount.add(inc.i);
-                return x;
-            }
-            return 0;
-        };
+        // need to calculate for every frameInfo instance (frameInfo and locFinal have same length)
+        for (int i = 0; i < expectedSize[1]; i++) {
+            double[] data = ((MLDouble) FRAME_INFO.get(i)).getArray()[0];
+            double[][] cache = ((MLDouble) LOC_FINAL.get(0, i)).getArray();
 
-        long startTime = System.currentTimeMillis();
+            // calculate pdist for every index
+            // pdist works by getting the distance from the current element to every other element in front of it
+            // however since frameInfo is always 1D, its just a subtraction and so very fast
+            // we calculate the pdist for frameInfo and only dist for locFinal when needed
+            //      as pdist for locFinal is very expensive
+            for (int pDistIndex = 0; pDistIndex < data.length - 1; pDistIndex++) {
+                double initial = data[pDistIndex];
+                for (int k = pDistIndex + 1; k < data.length; k++) {
+                    double frameDist = Math.abs(initial - data[k]);
 
-        for (int ii = 0; ii < 20; ii++) {
-            for (int i = 0; i < expectedSize[1]; i++) {
-                //int size = FRAME_INFO.get(i).getSize();
-                //SparseStore<Double> matrix = SparseStore.PRIMITIVE64.make(size, 1);
-                //{ // allow gc to collect and remove md since its just here to make code look pretty
-                //    double[][] md = ((MLDouble) FRAME_INFO.get(i)).getArray();
-                //    matrix.fillColumn(0, Access1D.wrap(md[0]));
-                //}
-    
-                //double[][] cache = ((MLDouble) LOC_FINAL.get(0, i)).getArray();
-    
-                //ArrayList<Double> total_blink = new ArrayList<Double>();
-                //for (int j = 0; j < size - 1; j++) {
-                //    matrix
-                //        .offsets(j + 1, 0)
-                //        .subtract(matrix.get(j, 0))
-                //        .onAll(PrimitiveMath.ABS)
-                //        .onAll(valid)
-                //        .copy(); // trigger calculations to actually run, not exactly good
-                //                 // but the only other way ik is via supplyTo which requires me
-                //                 // to allocate a new matrix every time which may be worse idk
-                //    
-                //    for (Integer k : indexCount) total_blink.add(dist(cache[j], cache[j + k]));
-    
-                //    inc.i = 0;
-                //    indexCount.clear();
-                //}
-                // TODO: hist counts
-                // maybe throw this into the above unary function?
-                // TODO: codes not organized correctly rn lol fix!
+                    // in the src, we look for distances that are equal to iis
+                    // where iis is defined as 1 + GAP * n (n is current iter) (+1 as matlab arr starts at 1)
+                    // rather than loop n times, just get every possible value here and then reverse calc n
+                    if ((frameDist - 1) % GAP == 0) {
+                        double locDist = dist(cache[pDistIndex], cache[k]);
 
-                double[] data = ((MLDouble) FRAME_INFO.get(i)).getArray()[0];
-                double[][] cache = ((MLDouble) LOC_FINAL.get(0, i)).getArray();
-                ArrayList<Double> total_blink = new ArrayList<Double>();
+                        // determine iteration as tech each frameDist needs to only be sorted with similar frameDist
+                        int n = (int) (frameDist - 1) / GAP;
 
-                for (int pDistIndex = 0; pDistIndex < data.length - 1; pDistIndex++) {
-                    double initial = data[pDistIndex];
-                    for (int k = pDistIndex + 1; k < data.length; k++) {
-                        double dist = Math.abs(initial - data[k]);
-                        if (dist == 1) {
-                            total_blink.add(dist(cache[pDistIndex], cache[k]));
-                        }
+                        if (n * GAP > NFTP - 1) continue;
+
+                        // determine which bin it goes into
+                        // bins are [start, end)
+                        int bin = 0;
+                        if (locDist >= binMax) bin = nBins - 1;
+                        else if (locDist >= binSize) bin = (int) (locDist / binSize);
+
+                        iterationBins[n][bin]++;
                     }
                 }
-
             }
         }
 
-        System.out.println(System.currentTimeMillis() - startTime);
-
-        for (int i = 0; i < nIter; i++) {
-            //System.out.println("Progress: " + i / (double) nIter);
-            for (int j = 0; j < expectedSize[1]; j++) {
-                
-            }
+        for (int i = 0; i < iterationBins.length; i++) {
+            System.out.println("" + i + " " + Arrays.toString(iterationBins[i]));
         }
     }
 
