@@ -77,37 +77,57 @@ public class determine_n implements PlugIn {
             return 0;
         };
 
-        for (int i = 0; i < expectedSize[1]; i++) {
-            int size = FRAME_INFO.get(i).getSize();
-            SparseStore<Double> matrix = SparseStore.PRIMITIVE64.make(size, 1);
-            { // allow gc to collect and remove md since its just here to make code look pretty
-                double[][] md = ((MLDouble) FRAME_INFO.get(i)).getArray();
-                matrix.fillColumn(0, Access1D.wrap(md[0]));
+        long startTime = System.currentTimeMillis();
+
+        for (int ii = 0; ii < 20; ii++) {
+            for (int i = 0; i < expectedSize[1]; i++) {
+                //int size = FRAME_INFO.get(i).getSize();
+                //SparseStore<Double> matrix = SparseStore.PRIMITIVE64.make(size, 1);
+                //{ // allow gc to collect and remove md since its just here to make code look pretty
+                //    double[][] md = ((MLDouble) FRAME_INFO.get(i)).getArray();
+                //    matrix.fillColumn(0, Access1D.wrap(md[0]));
+                //}
+    
+                //double[][] cache = ((MLDouble) LOC_FINAL.get(0, i)).getArray();
+    
+                //ArrayList<Double> total_blink = new ArrayList<Double>();
+                //for (int j = 0; j < size - 1; j++) {
+                //    matrix
+                //        .offsets(j + 1, 0)
+                //        .subtract(matrix.get(j, 0))
+                //        .onAll(PrimitiveMath.ABS)
+                //        .onAll(valid)
+                //        .copy(); // trigger calculations to actually run, not exactly good
+                //                 // but the only other way ik is via supplyTo which requires me
+                //                 // to allocate a new matrix every time which may be worse idk
+                //    
+                //    for (Integer k : indexCount) total_blink.add(dist(cache[j], cache[j + k]));
+    
+                //    inc.i = 0;
+                //    indexCount.clear();
+                //}
+                // TODO: hist counts
+                // maybe throw this into the above unary function?
+                // TODO: codes not organized correctly rn lol fix!
+
+                double[] data = ((MLDouble) FRAME_INFO.get(i)).getArray()[0];
+                double[][] cache = ((MLDouble) LOC_FINAL.get(0, i)).getArray();
+                ArrayList<Double> total_blink = new ArrayList<Double>();
+
+                for (int pDistIndex = 0; pDistIndex < data.length - 1; pDistIndex++) {
+                    double initial = data[pDistIndex];
+                    for (int k = pDistIndex + 1; k < data.length; k++) {
+                        double dist = Math.abs(initial - data[k]);
+                        if (dist == 1) {
+                            total_blink.add(dist(cache[pDistIndex], cache[k]));
+                        }
+                    }
+                }
+
             }
-
-            double[][] cache = ((MLDouble) LOC_FINAL.get(0, i)).getArray();
-
-            ArrayList<Double> total_blink = new ArrayList<Double>();
-            for (int j = 0; j < size - 1; j++) {
-                matrix
-                    .offsets(j + 1, 0)
-                    .subtract(matrix.get(j, 0))
-                    .onAll(PrimitiveMath.ABS)
-                    .onAll(valid)
-                    .copy(); // trigger calculations to actually run, not exactly good
-                             // but the only other way ik is via supplyTo which requires me
-                             // to allocate a new matrix every time which may be worse idk
-                
-                for (Integer k : indexCount) total_blink.add(dist(cache[j], cache[j + k]));
-
-                inc.i = 0;
-                indexCount.clear();
-            }
-            // TODO: hist counts
-            // maybe throw this into the above unary function?
-            // TODO: codes not organized correctly rn lol fix!
-            break;
         }
+
+        System.out.println(System.currentTimeMillis() - startTime);
 
         for (int i = 0; i < nIter; i++) {
             //System.out.println("Progress: " + i / (double) nIter);

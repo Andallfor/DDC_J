@@ -4,6 +4,7 @@ import scipy.io
 import scipy.spatial.distance
 import defs
 import numpy as np
+import time
 
 NFTP = 1000
 GAP = 10
@@ -21,17 +22,21 @@ for i in range(int((5000 / 250) + 1)):
 bins.append(math.inf)
 bins = np.array(bins)
 
+startTime = time.time()
 z2_list = []
 d1_list = []
-for i in range(len(loc_final)):
-    fInfo = frame_info[i]
-    X = np.hstack((np.zeros((fInfo.shape[1], 1)), fInfo.reshape(fInfo.shape[1], 1)))
-    z2 = scipy.spatial.distance.pdist(X)
-    d = scipy.spatial.distance.pdist(loc_final[i])
-    
-    z2_list.append(z2)
-    d1_list.append(d)
+for ii in range(20):
+    for i in range(len(loc_final)):
+        fInfo = frame_info[i]
+        X = np.hstack((np.zeros((fInfo.shape[1], 1)), fInfo.reshape(fInfo.shape[1], 1)))
+        z2 = scipy.spatial.distance.pdist(X)
+        d = scipy.spatial.distance.pdist(loc_final[i])
+        
+        z2_list.append(z2)
+        d1_list.append(d)
+        d = d[z2 == 1]
 
+print(time.time() - startTime)
 for i in range(1, NFTP, GAP):
     print(f'Progress: {i / NFTP}')
     total_blink = np.array([])
@@ -67,3 +72,7 @@ print(Z)
 # matlab: 1.20m
 # python 2.20m (no multiprocessing)
 # python without redundancy: very fast (not plugged in)
+
+# java 1. 239520
+# python 1. 88
+# java 2. 7
