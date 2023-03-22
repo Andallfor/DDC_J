@@ -1,6 +1,11 @@
 {
     "cSpell.words": [
-        "scipy"
+        "doesnt",
+        "isnt",
+        "ojalgo",
+        "scipy",
+        "thatll"
     ],
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.debug.settings.onBuildFailureProceed": true
 }
