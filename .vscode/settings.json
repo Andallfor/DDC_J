@@ -2,9 +2,11 @@
     "cSpell.words": [
         "doesnt",
         "isnt",
+        "lsne",
         "ojalgo",
         "scipy",
-        "thatll"
+        "thatll",
+        "vect"
     ],
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.debug.settings.onBuildFailureProceed": true

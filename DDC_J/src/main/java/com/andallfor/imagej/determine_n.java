@@ -58,8 +58,7 @@ public class determine_n implements PlugIn {
 
         final int nIter = (int) Math.ceil((double) NFTP / GAP);
 
-        int[] bins = util.makeBins(binMax, binSize);
-        int nBins = bins.length;
+        int nBins = (int) (binMax / binSize) + 2;
         int[][] iterationBins = new int[nIter][nBins - 1];
 
         IJ.showProgress(0);

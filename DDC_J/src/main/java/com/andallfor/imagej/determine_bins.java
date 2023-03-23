@@ -2,6 +2,7 @@ package com.andallfor.imagej;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -38,16 +39,7 @@ public class determine_bins implements PlugIn {
         // get max dist in locFinal
         int[] expectedSize = LOC_FINAL.getDimensions();
         double maxLocDist = 0;
-        // also find D_blink and D_no_blink (from src) as the only that changes each iteration is the histogram, not the data
-        // TODO: would it be faster to have two arrays of sumFac size? would 2x memory but no need to reallocate space for array
-        ArrayList<ArrayList<Double>> D_blink = new ArrayList<ArrayList<Double>>();
-        ArrayList<ArrayList<Double>> D_no_blink = new ArrayList<ArrayList<Double>>();
         ArrayList<determineBinThread> threads = new ArrayList<determineBinThread>();
-        // setup arrayLists (java is really bad and cant fix arrays and lists)
-        for (int i = 0; i < expectedSize[1]; i++) {
-            D_blink.add(new ArrayList<Double>());
-            D_no_blink.add(new ArrayList<Double>());
-        }
 
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iter = 0; iter < expectedSize[1]; iter++) {
@@ -65,40 +57,101 @@ public class determine_bins implements PlugIn {
         es.shutdown();
         try {es.awaitTermination(10_000, TimeUnit.MINUTES);}
         catch (InterruptedException e) {
-            IJ.showMessage("Unable to run initial threads.");
+            IJ.showMessage("Unable to run initial threads. Maybe distances between localizations is too great? (>10,000)");
+            IJ.showMessage(e.toString());
             return;
         }
 
-        for (determineBinThread thread : threads) {
-            D_blink.set(thread.iter, thread.blink);
-            D_no_blink.set(thread.iter, thread.noBlink);
-            if (thread.maxLocDist > maxLocDist) maxLocDist = thread.maxLocDist;
-        }
+        // get max dist out of all threads
+        for (determineBinThread thread : threads) if (thread.maxLocDist > maxLocDist) maxLocDist = thread.maxLocDist;
 
         // utilize binary search-esq alg to determine correct bin size
         // 0 -> 150 step size of 10
         // this works because the change is monotonic [111111111110000000000000] always
-        //int left = 0, right = 15, step = 10;
-        //int res = 0;
-        //while (left != right) {
-        //    int m = (int) Math.ceil((left + right) / 2.0);
-        //    res = m * step;
-//
-        //    int[] bins = util.makeBins(maxLocDist, res);
-//
-        //    if (false) right = m - 1;
-        //    else left = m;
-        //}
-//
-        //System.out.println(res);
+        // there is very likely a way to determine bin res without manually checking but A. im dumb and B. not worth the time
+        //      as this script only runs once and is alr fast enough
+        int left = 0, right = 15, step = 10;
+        int res = 0;
+        while (left != right) {
+            int m = (int) Math.ceil((left + right) / 2.0);
+            res = m * step;
 
-        for (int i = 0; i < 24; i++) {
-            System.out.println(i);
-            System.out.println(D_blink.get(i).size() + D_no_blink.get(i).size());
-            System.out.println(D_blink.get(i).size());
-            System.out.println(D_no_blink.get(i).size());
-            System.out.println("====");
+            int binCount = (int) (maxLocDist / res) + 1;
+
+            double[] d_count_blink = new double[binCount];
+            double[] d_count_no_blink = new double[binCount];
+            for (int i = 0; i < expectedSize[1]; i++) {
+                determineBinThread thread = threads.get(i);
+
+                double[] binsBlink = sortProbBins(thread.binsBlink, res, determineBinThread.locQuantization, binCount, thread.countBlink);
+                double[] binsNoBlink = sortProbBins(thread.binsNoBlink, res, determineBinThread.locQuantization, binCount, thread.countNoBlink);
+
+                for (int j = 0; j < binCount; j++) {
+                    d_count_blink[j] += binsBlink[j] / (double) expectedSize[1];
+                    d_count_no_blink[j] += binsNoBlink[j] / (double) expectedSize[1];
+                }
+            }
+
+            // math!
+            int lsne = (int) Math.ceil(1000 / (double) res) - 1; // -1 bc matlab arr starts at 1
+            double d_scale = util.sumArr(d_count_blink, lsne, d_count_blink.length) / util.sumArr(d_count_no_blink, lsne, d_count_no_blink.length);
+            double[] d_count_3 = new double[d_count_blink.length];
+            for (int i = 0; i < d_count_blink.length; i++) d_count_3[i] = d_count_blink[i] - d_count_no_blink[i] * d_scale;
+            double d_count_3_sum = util.sumArr(d_count_3, 0, d_count_3.length);
+            for (int i = 0; i < d_count_3.length; i++) d_count_3[i] /= d_count_3_sum;
+
+            for (int i = 3; i < d_count_3.length - 1; i++) {
+                if (!(d_count_3[i] > 0 && d_count_3[i + 1] < d_count_3[i])) {
+                    d_count_3[i] = 0;
+                    break;
+                }
+            }
+
+            // shush ill write my own vect wrapper eventually (or steal one)
+            for (int i = 0; i < d_count_3.length; i++) if (d_count_3[i] < 0) d_count_3[i] = 0;
+            double s1 = util.sumArr(d_count_3, 0, d_count_3.length);
+            for (int i = 0; i < d_count_3.length; i++) d_count_3[i] /= s1;
+            double s2 = util.sumArr(d_count_3, 0, d_count_3.length);
+            for (int i = 0; i < d_count_3.length; i++) d_count_3[i] /= s2;
+
+            int failCount = 0;
+            for (int i = 7; i < d_count_3.length; i++) {
+                if (d_count_3[i] > 0) failCount++;
+
+                if (failCount > 1) {
+                    System.out.println("Warning: Eliminating noise for higher bins");
+                    System.arraycopy(new double[d_count_3.length - 7], 0, d_count_3, 7, d_count_3.length - 7);
+                    double s3 = util.sumArr(d_count_3, 0, d_count_3.length);
+                    for (int j = 0; j < d_count_3.length; j++) d_count_3[j] /= s3;
+                    break;
+                }
+            }
+
+            // because we quant the buckets, ensure that were over a threshold
+            double diff = 1 - (d_count_3[1] / d_count_3[0]);
+
+            if (diff >= 0.05) right = m - 1;
+            else left = m;
+            System.out.println(res);
         }
+        System.out.println("done");
+        System.out.println(res);
+    }
+
+    private double[] sortProbBins(int[] data, int binStep, int dataQuant, int binCount, double dataN) {
+        double[] bins = new double[binCount];
+        for (int i = 0; i < data.length; i++) {
+            int dataPos = i * dataQuant;
+            int index = dataPos / binStep;
+
+            double v = data[i] / dataN;
+
+            if (index >= binCount) bins[binCount - 1] += v;
+            else if (index < 0) bins[0] += v;
+            else bins[index] += v;
+        }
+
+        return bins;
     }
 
     public static void main(String[] args) throws Exception {

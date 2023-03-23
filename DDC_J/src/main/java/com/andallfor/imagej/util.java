@@ -20,4 +20,10 @@ public class util {
         if (x % 2 == 0) return (x + 1) * (x / 2);
         return (x + 1) * ((x - 1) / 2) + ((x + 1) / 2);
     }
+
+    public static double sumArr(double[] arr, int start, int end) {
+        double sum = 0;
+        for (int i = start; i < end; i++) sum += arr[i];
+        return sum;
+    }
 }
