@@ -1,9 +1,7 @@
 package com.andallfor.imagej;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLCell;
@@ -59,11 +57,9 @@ public class determine_n implements PlugIn {
         assert Arrays.equals(LOC_FINAL.getDimensions(), expectedSize);
 
         final int nIter = (int) Math.ceil((double) NFTP / GAP);
-        final int nBins = (binMax / binSize) + 1 + 1; // +1 to include end, +1 to end with inf
-        int[] bins = new int[nBins];
-        for (int i = 0; i < nBins - 1; i++) bins[i] = i * 250;
-        bins[nBins - 1] = Integer.MAX_VALUE;
 
+        int[] bins = util.makeBins(binMax, binSize);
+        int nBins = bins.length;
         int[][] iterationBins = new int[nIter][nBins - 1];
 
         IJ.showProgress(0);
@@ -89,7 +85,7 @@ public class determine_n implements PlugIn {
                     // where iis is defined as 1 + GAP * n (n is current iter) (+1 as matlab arr starts at 1)
                     // rather than loop n times, just get every possible value here and then reverse calc n
                     if ((frameDist - 1) % GAP == 0) {
-                        double locDist = dist(cache[pDistIndex], cache[k]);
+                        double locDist = util.dist(cache[pDistIndex], cache[k]);
 
                         // determine iteration as tech each frameDist needs to only be sorted with similar frameDist
                         int n = (int) (frameDist - 1) / GAP;
@@ -140,11 +136,7 @@ public class determine_n implements PlugIn {
         p.show();
     }
 
-    private double dist(double[] a, double[] b) {
-        double interior = 0;
-        for (int i = 0; i < a.length; i++) interior += (a[i] - b[i]) * (a[i] - b[i]);
-        return Math.sqrt(interior);
-    }
+    
 
     public static void main(String[] args) throws Exception {
 		// set the plugins.dir property to make the plugin appear in the Plugins menu

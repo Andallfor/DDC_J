@@ -14,6 +14,8 @@ frame_info = mat['Frame_Information'][0]
 true_loc = mat['TrueLocalizations']
 loc_final = mat['LocalizationsFinal'][0]
 
+startTime = time.time()
+
 cum_sum_store = []
 frameStore = []
 bins = []
@@ -62,13 +64,15 @@ Z = []
 for i in range(len(cum_sum_store)):
     Z.append(np.sum(np.absolute(cum_sum_store[0] - cum_sum_store[i])))
 
+print(time.time() - startTime)
+
 plt.plot(frameStore, Z)
 plt.show()
 print(Z)
 
 # matlab: 1.20m
 # python 2.20m (no multiprocessing)
-# python without redundancy: very fast (not plugged in)
+# python without redundancy: 18.1s
 # java naive 8.2s
 
 # java 1. 239520
