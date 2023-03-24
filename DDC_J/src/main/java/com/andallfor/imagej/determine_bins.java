@@ -2,13 +2,13 @@ package com.andallfor.imagej;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import ij.IJ;
 import ij.ImageJ;
+import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 
 import com.jmatio.io.MatFileReader;
@@ -22,12 +22,29 @@ import com.jmatio.types.MLDouble;
  */
 
 public class determine_bins implements PlugIn {
-    private final String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Split_Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
-    //private final String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Split_Example_3d_2darkstate_random_data.mat";
-    //private final String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
-    private final int N = 200;
-
     public void run(String arg) {
+        GenericDialog gd = new GenericDialog("Determine Bin Parameters");
+        gd.addMessage("Parameters to determine the size of each bin.");
+        gd.addHelp("https://github.com/Andallfor/DDC_J/blob/main/papers/DDC%20User%20Guide%20(GO%20HERE).pdf");
+        gd.addFileField("File to Parse", "");
+        gd.addNumericField("N (From Determine N Script)", 200, 0);
+        gd.addNumericField("Localization Distance Quantization", 20, 0); // see determineBinThread.java
+
+        gd.showDialog();
+
+        String filePath = "";
+        int N = 0;
+
+        if (gd.wasOKed()) {
+            filePath = gd.getNextString();
+            N = (int) gd.getNextNumber();
+            determineBinThread.locQuantization = (int) gd.getNextNumber();
+        } else if (gd.wasCanceled()) return;
+
+        // validate
+        if (N <= 0) {IJ.showMessage("N must be greater than 0."); return;}
+        if (determineBinThread.locQuantization <= 0) {IJ.showMessage("Quant must be greater than 0"); return;}
+
         MatFileReader mfr = null;
         try {mfr = new MatFileReader(filePath);}
         catch (IOException e) {
@@ -77,8 +94,6 @@ public class determine_bins implements PlugIn {
         while (left != right) {
             int m = (int) Math.ceil((left + right) / 2.0);
             res = m * step;
-
-            //res = 70;
 
             int binCount = (int) (maxLocDist / res) + 1;
 
@@ -143,14 +158,9 @@ public class determine_bins implements PlugIn {
 
             if (maxIndex == 0) right = m - 1;
             else left = m;
-            //System.out.println(res);
-            //System.out.println(Arrays.toString(d_count_3));
-            //System.out.println(Arrays.toString(d_count_blink));
-
-            //return;
         }
-        System.out.println("done");
-        System.out.println(res);
+
+        IJ.showMessage("The predicted resolution is " + res);
     }
 
     private double[] sortProbBins(int[] data, int binStep, int dataQuant, int binCount, double dataN) {

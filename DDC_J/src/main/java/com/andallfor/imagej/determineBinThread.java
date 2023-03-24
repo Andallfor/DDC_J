@@ -1,7 +1,5 @@
 package com.andallfor.imagej;
 
-import java.util.Arrays;
-
 public class determineBinThread implements Runnable {
     public int iter, countBlink, countNoBlink;
     public double maxLocDist;
@@ -11,6 +9,8 @@ public class determineBinThread implements Runnable {
     private double[] fInfo;
     public static int locQuantization = 20; // because DDC is not super sensitive to bin width (as per user manual),
                                             //   quantize frameInfo values to make it faster to calculate custom bin widths
+                                            // each distance will be rounded to their nearest locQuant, and these distances
+                                            //   will be used to calc bins
     private final int MAX_BIN = 10_000;
     public determineBinThread(int iter, double[][] loc, double[] fInfo, int N) {
         this.iter = iter;
@@ -24,7 +24,7 @@ public class determineBinThread implements Runnable {
         // dont know how big this arr needs to be, in example data max dist is 3k but im setting as 10k just in case
         int[] _binsBlink = new int[MAX_BIN / locQuantization];
         int[] _binsNoBlink = new int[MAX_BIN / locQuantization];
-        // TODO: eventually use vectorization cause this is sign slower than matlab/python
+        // TODO: eventually use vectorization cause this is sig slower than matlab/python
         for (int i = 0; i < loc.length - 1; i++) {
             for (int j = i + 1; j < loc.length; j++) {
                 double locDist = util.dist(loc[i], loc[j]);
