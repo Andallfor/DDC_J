@@ -22,7 +22,9 @@ import com.jmatio.types.MLDouble;
  */
 
 public class determine_bins implements PlugIn {
-    private final String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
+    private final String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Split_Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
+    //private final String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Split_Example_3d_2darkstate_random_data.mat";
+    //private final String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
     private final int N = 200;
 
     public void run(String arg) {
@@ -76,6 +78,8 @@ public class determine_bins implements PlugIn {
             int m = (int) Math.ceil((left + right) / 2.0);
             res = m * step;
 
+            //res = 70;
+
             int binCount = (int) (maxLocDist / res) + 1;
 
             double[] d_count_blink = new double[binCount];
@@ -128,11 +132,22 @@ public class determine_bins implements PlugIn {
             }
 
             // because we quant the buckets, ensure that were over a threshold
-            double diff = 1 - (d_count_3[1] / d_count_3[0]);
+            double max = 0;
+            int maxIndex = 0;
+            for (int i = 0; i < d_count_3.length; i++) {
+                if (d_count_3[i] > max) {
+                    max = d_count_3[i];
+                    maxIndex = i;
+                }
+            }
 
-            if (diff >= 0.05) right = m - 1;
+            if (maxIndex == 0) right = m - 1;
             else left = m;
-            System.out.println(res);
+            //System.out.println(res);
+            //System.out.println(Arrays.toString(d_count_3));
+            //System.out.println(Arrays.toString(d_count_blink));
+
+            //return;
         }
         System.out.println("done");
         System.out.println(res);
