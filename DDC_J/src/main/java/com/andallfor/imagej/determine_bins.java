@@ -146,7 +146,6 @@ public class determine_bins implements PlugIn {
                 }
             }
 
-            // because we quant the buckets, ensure that were over a threshold
             double max = 0;
             int maxIndex = 0;
             for (int i = 0; i < d_count_3.length; i++) {
