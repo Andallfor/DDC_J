@@ -74,6 +74,20 @@
 	</properties>
 
 	<dependencies>
+
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-jmatio</artifactId>
+			<version>0.3.0</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.ujmp</groupId>
+			<artifactId>ujmp-core</artifactId>
+			<version>0.3.0</version>
+		</dependency>
+
 		<dependency>
 			<groupId>com.diffplug.matsim</groupId>
 			<artifactId>jmatio</artifactId>

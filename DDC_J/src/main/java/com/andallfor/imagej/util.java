@@ -17,8 +17,7 @@ public class util {
     }
 
     public static int sumFactorial(int x) {
-        if (x % 2 == 0) return (x + 1) * (x / 2);
-        return (x + 1) * ((x - 1) / 2) + ((x + 1) / 2);
+        return (x * (x + 1)) / 2;
     }
 
     public static double sumArr(double[] arr, int start, int end) {

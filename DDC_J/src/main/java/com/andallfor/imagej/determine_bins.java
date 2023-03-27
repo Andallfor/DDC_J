@@ -159,7 +159,7 @@ public class determine_bins implements PlugIn {
             else left = m;
         }
 
-        IJ.showMessage("The predicted resolution is " + res);
+        IJ.showMessage("The predicted resolution is " + res + "\nMax Localization Distance is " + maxLocDist);
     }
 
     private double[] sortProbBins(int[] data, int binStep, int dataQuant, int binCount, double dataN) {
