@@ -13,7 +13,7 @@ public class determineBlinkingResParent implements Runnable {
 
     public double[] binsBlink, binsNoBlink;
 
-    private int pointsPerThread = 2_000_000;
+    private int pointsPerThread = 10_000_000;
 
     public determineBlinkingResParent(double[] frame, double[][] loc, double max, int res, int N) {
         this.frame = frame;
@@ -44,6 +44,7 @@ public class determineBlinkingResParent implements Runnable {
          *     +-a-|--b---+
          *       P_n + 1
          * x axis is outer loop
+         * note that # threads > # cpu cores will have no effect (and may actually be worse)
          */
 
         double b = 0; // previous length
