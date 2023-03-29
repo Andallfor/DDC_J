@@ -12,6 +12,7 @@ public class determineBlinkingResParent implements Runnable {
     private int N, res;
 
     public double[] binsBlink, binsNoBlink;
+    public double[][] binsFittingBlink;
 
     private int pointsPerThread = 10_000_000;
 
@@ -24,9 +25,6 @@ public class determineBlinkingResParent implements Runnable {
     }
 
     public void run() {
-        int[] _binsBlink = new int[(int) Math.floor(max / res) + 1];
-        int[] _binsNoBlink = new int[(int) Math.floor(max / res) + 1];
-
         ExecutorService es = Executors.newCachedThreadPool();
 
         int numThreads = (int) Math.ceil(util.sumFactorial(frame.length - 1) / (double) pointsPerThread);
@@ -71,12 +69,22 @@ public class determineBlinkingResParent implements Runnable {
         try {es.awaitTermination(10_000, TimeUnit.MINUTES);}
         catch (InterruptedException e) {return;}
 
+        int[] _binsBlink = new int[(int) Math.floor(max / res) + 1];
+        int[] _binsNoBlink = new int[(int) Math.floor(max / res) + 1];
+        int[][] _binsFittingBlink = new int[N][(int) Math.floor(max / res) + 1];
+
         // combine results from children
         for (int i = 0; i < threads.length; i++) {
             determineBlinkingResChild child = threads[i];
             for (int j = 0; j < child.binsBlink.length; j++) {
                 _binsBlink[j] += child.binsBlink[j];
                 _binsNoBlink[j] += child.binsNoBlink[j];
+            }
+
+            for (int j = 0; j < N; j++) {
+                for (int k = 0; k < child.binsBlink.length; k++) {
+                    _binsFittingBlink[j][k] += child.binsFittingBlink[j][k];
+                }
             }
         }
 
@@ -85,10 +93,17 @@ public class determineBlinkingResParent implements Runnable {
 
         binsBlink = new double[_binsBlink.length];
         binsNoBlink = new double[_binsNoBlink.length];
-
         for (int i = 0; i < binsBlink.length; i++) {
             binsBlink[i] = (double) _binsBlink[i] / blinkCount;
             binsNoBlink[i] = (double) _binsNoBlink[i] / noBlinkCount;
+        }
+
+        binsFittingBlink = new double[N][_binsBlink.length];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < _binsBlink.length; j++)  {
+                double size = IntStream.of(_binsFittingBlink[i]).sum();
+                binsFittingBlink[i][j] = (double) _binsFittingBlink[i][j] / size;
+            }
         }
     }
 }

@@ -76,11 +76,10 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>org.ujmp</groupId>
-			<artifactId>ujmp-jmatio</artifactId>
-			<version>0.3.0</version>
+			<groupId>org.orangepalantir</groupId>
+			<artifactId>leastsquares</artifactId>
+			<version>1.0.0</version>
 		</dependency>
-
 
 		<dependency>
 			<groupId>org.ujmp</groupId>
