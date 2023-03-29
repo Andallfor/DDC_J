@@ -1,6 +1,6 @@
 package com.andallfor.imagej;
 
-public class determineBlinkingResChild implements Runnable {
+public class determineBlinkingDistChild implements Runnable {
     private double[] frame;
     private double[][] loc;
     private double max;
@@ -10,7 +10,7 @@ public class determineBlinkingResChild implements Runnable {
     public int[] binsBlink, binsNoBlink;
     public int[][] binsFittingBlink;
 
-    public determineBlinkingResChild(double[] frame, double[][] loc, int start, int end, double max, int res, int N) {
+    public determineBlinkingDistChild(double[] frame, double[][] loc, int start, int end, double max, int res, int N) {
         this.frame = frame;
         this.loc = loc;
         this.start = start;

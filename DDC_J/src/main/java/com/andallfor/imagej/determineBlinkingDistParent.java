@@ -5,7 +5,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-public class determineBlinkingResParent implements Runnable {
+public class determineBlinkingDistParent implements Runnable {
     private double[] frame;
     private double[][] loc;
     private double max;
@@ -16,7 +16,7 @@ public class determineBlinkingResParent implements Runnable {
 
     private int pointsPerThread = 10_000_000;
 
-    public determineBlinkingResParent(double[] frame, double[][] loc, double max, int res, int N) {
+    public determineBlinkingDistParent(double[] frame, double[][] loc, double max, int res, int N) {
         this.frame = frame;
         this.loc = loc;
         this.max = max;
@@ -28,7 +28,7 @@ public class determineBlinkingResParent implements Runnable {
         ExecutorService es = Executors.newCachedThreadPool();
 
         int numThreads = (int) Math.ceil(util.sumFactorial(frame.length - 1) / (double) pointsPerThread);
-        determineBlinkingResChild[] threads = new determineBlinkingResChild[numThreads];
+        determineBlinkingDistChild[] threads = new determineBlinkingDistChild[numThreads];
 
         /*
          * area of below triangle is # results from pdist (P_n = length of input arr - 1)
@@ -54,9 +54,9 @@ public class determineBlinkingResParent implements Runnable {
             double d = 2 * n + 2;
             double a = Math.floor(Math.sqrt((d * (t + (b * b * n / d))) / n) - b);
 
-            determineBlinkingResChild child = null;
-            if (i == numThreads - 1) child = new determineBlinkingResChild(frame, loc, (int) b, (int) n, max, res, N); // last iter, take all 
-            else child = new determineBlinkingResChild(frame, loc, (int) b, (int) (b + a), max, res, N);               //   remaining area
+            determineBlinkingDistChild child = null;
+            if (i == numThreads - 1) child = new determineBlinkingDistChild(frame, loc, (int) b, (int) n, max, res, N); // last iter, take all 
+            else child = new determineBlinkingDistChild(frame, loc, (int) b, (int) (b + a), max, res, N);               //   remaining area
 
             threads[i] = child;
             es.execute(child);
@@ -75,7 +75,7 @@ public class determineBlinkingResParent implements Runnable {
 
         // combine results from children
         for (int i = 0; i < threads.length; i++) {
-            determineBlinkingResChild child = threads[i];
+            determineBlinkingDistChild child = threads[i];
             for (int j = 0; j < child.binsBlink.length; j++) {
                 _binsBlink[j] += child.binsBlink[j];
                 _binsNoBlink[j] += child.binsNoBlink[j];
