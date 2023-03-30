@@ -1,11 +1,9 @@
-package com.andallfor.imagej;
+package com.andallfor.imagej.passes.first;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.andallfor.imagej.determineBlinkingDist.primaryPassAction;
-import com.andallfor.imagej.determineBlinkingDist.primaryPassCollector;
 import com.andallfor.imagej.imagePass.imagePDistExecutor;
 import com.jmatio.types.MLCell;
 import com.jmatio.types.MLDouble;
@@ -28,6 +26,7 @@ public class initialPass {
     }
 
     public void run() {
+        long s1 = System.currentTimeMillis();
         ExecutorService es = Executors.newCachedThreadPool();
 
         processedData = new primaryPassCollector[expectedSize[1]];
@@ -49,5 +48,7 @@ public class initialPass {
 
         try {es.awaitTermination(10_000, TimeUnit.MINUTES);}
 		catch (InterruptedException e) {return;}
+
+        System.out.println("Initial pass time: " + (System.currentTimeMillis() - s1) + "\n");
     }
 }

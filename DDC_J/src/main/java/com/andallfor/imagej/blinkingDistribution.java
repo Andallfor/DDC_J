@@ -1,13 +1,11 @@
-package com.andallfor.imagej.determineBlinkingDist;
+package com.andallfor.imagej;
 
 import org.orangepalantir.leastsquares.fitters.NonLinearSolver;
 import org.ujmp.core.Matrix;
 import org.ujmp.core.calculation.Calculation.Ret;
 import org.ujmp.core.doublematrix.DoubleMatrix2D;
 
-import com.andallfor.imagej.util;
-
-import java.util.Arrays;
+import com.andallfor.imagej.passes.first.primaryPassCollector;
 
 import org.orangepalantir.leastsquares.Fitter;
 import org.orangepalantir.leastsquares.Function;
@@ -69,6 +67,9 @@ public class blinkingDistribution {
 			_distribution_for_blink = _distribution_for_blink.divide(_distribution_for_blink.getValueSum());
 		}
 
+		long fittingTime = System.currentTimeMillis();
+		System.out.println("Blinking dist matrix one time: " + (fittingTime - s1));
+
 		// calc d_scale_store
 		Function fun = new Function() {
             @Override
@@ -107,6 +108,9 @@ public class blinkingDistribution {
 				_d_scale_store[i][j] = solver.getParameters()[0];
 			}
 		}
+
+		long finalTime = System.currentTimeMillis();
+		System.out.println("Blinking dist fitting time: " + (finalTime - fittingTime));
 
 		double[] d_scale_store = new double[N];
 		x_overall = new double[N]; // we need a copy of d_scale_store since we continue to modify this later
@@ -154,8 +158,8 @@ public class blinkingDistribution {
 
         distribution_for_blink = _distribution_for_blink.toDoubleArray()[0];
 
-		System.out.println(Arrays.toString(distribution_for_blink));
-
-		System.out.println("Blinking Res Time: " + (int) (System.currentTimeMillis() - s1));
+		long c = System.currentTimeMillis();
+		System.out.println("Blinking dist final section time: " + (c - finalTime));
+		System.out.println("Total blinking dist time: " + (int) (c - s1) + "\n");
 	}
 }

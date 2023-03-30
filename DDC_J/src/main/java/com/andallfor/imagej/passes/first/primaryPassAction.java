@@ -1,4 +1,4 @@
-package com.andallfor.imagej.determineBlinkingDist;
+package com.andallfor.imagej.passes.first;
 
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.imagePass.imagePassAction;
@@ -9,7 +9,6 @@ public class primaryPassAction extends imagePassAction {
 
     public int[] binsBlink, binsNoBlink;
     public int[][] binsFittingBlink;
-    public int[] distanceMatrixCount;
 
     public primaryPassAction(double max, int res, int N) {
         this.N = N;

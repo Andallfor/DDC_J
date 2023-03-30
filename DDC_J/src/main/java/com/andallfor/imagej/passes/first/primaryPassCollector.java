@@ -1,4 +1,4 @@
-package com.andallfor.imagej.determineBlinkingDist;
+package com.andallfor.imagej.passes.first;
 
 import java.util.stream.IntStream;
 

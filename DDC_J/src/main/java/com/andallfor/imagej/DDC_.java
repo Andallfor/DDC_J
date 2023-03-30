@@ -6,7 +6,7 @@ import ij.plugin.PlugIn;
 
 import java.io.IOException;
 
-import com.andallfor.imagej.determineBlinkingDist.blinkingDistribution;
+import com.andallfor.imagej.passes.first.initialPass;
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLCell;
 
@@ -19,7 +19,7 @@ import com.jmatio.types.MLCell;
  * maybe copy over comments from matlab code
  * sort out licenses
  * replace threads[0].binsBlink.length with a constant/predefined
- * rename blinkingDistChild and parent to better reflect their roles- the first pass over the data
+ * trying replacing matrixes with arr, might be faster
  */
 
 public class DDC_ implements PlugIn {
@@ -33,6 +33,7 @@ public class DDC_ implements PlugIn {
 	private MLCell LOC_FINAL, FRAME_INFO;
 
     public void run(String arg) {
+		long trueS1 = System.currentTimeMillis();
 		MatFileReader mfr = null;
         try {mfr = new MatFileReader(filePath);}
         catch (IOException e) {
@@ -44,11 +45,15 @@ public class DDC_ implements PlugIn {
 		FRAME_INFO = (MLCell) mfr.getMLArray("Frame_Information");
 		int numImages = FRAME_INFO.getDimensions()[1];
 
+		System.out.println("Mat file reading time: " + (System.currentTimeMillis() - trueS1) + "\n");
+
 		initialPass pass1 = new initialPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist);
 		pass1.run();
 
 		blinkingDistribution blinkDist = new blinkingDistribution(N, numImages);
 		blinkDist.run(pass1.processedData);
+
+		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }
 
     public static void main(String[] args) throws Exception {
