@@ -1,67 +1,30 @@
 package com.andallfor.imagej.determineBlinkingDist;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 import org.orangepalantir.leastsquares.fitters.NonLinearSolver;
 import org.ujmp.core.Matrix;
 import org.ujmp.core.calculation.Calculation.Ret;
 import org.ujmp.core.doublematrix.DoubleMatrix2D;
 
 import com.andallfor.imagej.util;
-import com.andallfor.imagej.imagePass.imagePDistExecutor;
-import com.jmatio.types.MLCell;
-import com.jmatio.types.MLDouble;
+
+import java.util.Arrays;
 
 import org.orangepalantir.leastsquares.Fitter;
 import org.orangepalantir.leastsquares.Function;
 
 public class blinkingDistribution {
-    private int N, res;
-    private int[] expectedSize;
-    private double maxDist;
-    private MLCell LOC_FINAL, FRAME_INFO;
+    private int N, numImages;
 
     public double[] x_overall, distribution_for_blink;
     public double[][] m_mat;
 
-    public blinkingDistribution(MLCell LOC_FINAL, MLCell FRAME_INFO, int N, int res, double maxDist) {
+    public blinkingDistribution(int N, int numImages) {
         this.N = N;
-        this.res = res;
-        this.maxDist = maxDist;
-        this.LOC_FINAL = LOC_FINAL;
-        this.FRAME_INFO = FRAME_INFO;
-        this.expectedSize = LOC_FINAL.getDimensions();
+		this.numImages = numImages;
     }
 
-    public void run() {
+    public void run(primaryPassCollector[] threads) {
 		long s1 = System.currentTimeMillis();
-		ExecutorService es = Executors.newCachedThreadPool();
-		//determineBlinkingDistParent[] threads = new determineBlinkingDistParent[expectedSize[1]];
-		determineBlinkingDistAction act = new determineBlinkingDistAction(0, 0, 0); // this is just a holder bc fuck java!
-		determineBlinkingDistCallback[] threads = new determineBlinkingDistCallback[expectedSize[1]];
-		for (int i = 0; i < expectedSize[1]; i++) {
-			// not using .parallel/parallelStream since that requires Integer which is so much slower and larger than int
-			double[][] loc = ((MLDouble) LOC_FINAL.get(i)).getArray();
-			double[] fInfo = ((MLDouble) FRAME_INFO.get(i)).getArray()[0];
-			determineBlinkingDistCallback callback = new determineBlinkingDistCallback(maxDist, res, N);
-			imagePDistExecutor executor = new imagePDistExecutor(fInfo, loc, 10_000_00);
-			executor.setParameters(act, callback, maxDist, res, N);
-			threads[i] = callback;
-
-			//determineBlinkingDistParent thread = new determineBlinkingDistParent(fInfo, loc, maxDist, res, N);
-			//threads[i] = thread;
-
-			//es.execute(thread);
-
-			es.execute(executor);
-		}
-
-		es.shutdown();
-
-		try {es.awaitTermination(10_000, TimeUnit.MINUTES);}
-		catch (InterruptedException e) {return;}
 
 		double[] d_count_blink = new double[threads[0].binsBlink.length];
 		double[] d_count_no_blink = new double[d_count_blink.length]; // they have the same length
@@ -130,10 +93,10 @@ public class blinkingDistribution {
 
 		Fitter solver = new NonLinearSolver(fun);
 		double[] initialPara = new double[] {1};
-		double[][] _d_scale_store = new double[expectedSize[1]][N];
-		for (int i = 0; i < expectedSize[1]; i++) {
+		double[][] _d_scale_store = new double[numImages][N];
+		for (int i = 0; i < numImages; i++) {
 			//determineBlinkingDistParent thread = threads[i];
-			determineBlinkingDistCallback thread = threads[i];
+			primaryPassCollector thread = threads[i];
 			double[][] xs = new double[thread.binsNoBlink.length][2];
 			for (int j = 0; j < xs.length; j++) xs[j] = new double[] {thread.binsNoBlink[j], _distribution_for_blink.getAsDouble(0, j)};
 
@@ -149,8 +112,8 @@ public class blinkingDistribution {
 		x_overall = new double[N]; // we need a copy of d_scale_store since we continue to modify this later
 		for (int i = 0; i < N; i++) {
 			double sum = 0;
-			for (int j = 0; j < expectedSize[1]; j++) sum += _d_scale_store[j][i];
-			sum /= (double) expectedSize[1];
+			for (int j = 0; j < numImages; j++) sum += _d_scale_store[j][i];
+			sum /= (double) numImages;
 
 			x_overall[i] = sum;
 			if (sum > 1) sum = 1;
@@ -160,10 +123,10 @@ public class blinkingDistribution {
 
 		d_scale_store[d_scale_store.length - 1] = 1;
 
-		Matrix[] imageStack = new Matrix[expectedSize[1]];
-		for (int i = 0; i < expectedSize[1]; i++) {
+		Matrix[] imageStack = new Matrix[numImages];
+		for (int i = 0; i < numImages; i++) {
 			//determineBlinkingDistParent thread = threads[i];
-			determineBlinkingDistCallback thread = threads[i];
+			primaryPassCollector thread = threads[i];
 			Matrix img = DoubleMatrix2D.Factory.zeros(N, threads[0].binsBlink.length);
 			for (int j = 0; j < N; j++) {
 				double d = d_scale_store[j];
@@ -182,14 +145,16 @@ public class blinkingDistribution {
 		for (int i = 0; i < N; i++) {
 			for (int j = 0; j < threads[0].binsBlink.length; j++) {
 				double sum = 0;
-				for (int k = 0; k < expectedSize[1]; k++) sum += imageStack[k].getAsDouble(i, j);
-				sum /= (double) expectedSize[1];
+				for (int k = 0; k < numImages; k++) sum += imageStack[k].getAsDouble(i, j);
+				sum /= (double) numImages;
 
 				m_mat[i][j] = sum;
 			}
 		}
 
         distribution_for_blink = _distribution_for_blink.toDoubleArray()[0];
+
+		System.out.println(Arrays.toString(distribution_for_blink));
 
 		System.out.println("Blinking Res Time: " + (int) (System.currentTimeMillis() - s1));
 	}

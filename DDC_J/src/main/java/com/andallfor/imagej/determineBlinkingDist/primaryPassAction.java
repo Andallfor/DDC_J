@@ -3,7 +3,7 @@ package com.andallfor.imagej.determineBlinkingDist;
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.imagePass.imagePassAction;
 
-public class determineBlinkingDistAction extends imagePassAction {
+public class primaryPassAction extends imagePassAction {
     private int N, res;
     private double max;
 
@@ -11,7 +11,7 @@ public class determineBlinkingDistAction extends imagePassAction {
     public int[][] binsFittingBlink;
     public int[] distanceMatrixCount;
 
-    public determineBlinkingDistAction(double max, int res, int N) {
+    public primaryPassAction(double max, int res, int N) {
         this.N = N;
         this.res = res;
         this.max = max; 
@@ -45,7 +45,7 @@ public class determineBlinkingDistAction extends imagePassAction {
     }
 
     public imagePassAction createSelf(double[] frame, double[][] loc, double ...parameters) {
-        determineBlinkingDistAction act = new determineBlinkingDistAction((double) parameters[0], (int) parameters[1], (int) parameters[2]);
+        primaryPassAction act = new primaryPassAction((double) parameters[0], (int) parameters[1], (int) parameters[2]);
         act.frame = frame;
         act.loc = loc;
         return act;

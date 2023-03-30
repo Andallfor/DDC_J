@@ -5,7 +5,7 @@ import java.util.stream.IntStream;
 import com.andallfor.imagej.imagePass.imagePassAction;
 import com.andallfor.imagej.imagePass.imagePassCallback;
 
-public class determineBlinkingDistCallback implements imagePassCallback {
+public class primaryPassCollector implements imagePassCallback {
     private double max;
     private int res, N;
     
@@ -13,7 +13,7 @@ public class determineBlinkingDistCallback implements imagePassCallback {
     public double[][] binsFittingBlink;
     public int[] sortedIndex;
 
-    public determineBlinkingDistCallback(double max, int res, int N) {
+    public primaryPassCollector(double max, int res, int N) {
         this.max = max;
         this.res = res;
         this.N = N;
@@ -26,7 +26,7 @@ public class determineBlinkingDistCallback implements imagePassCallback {
 
         // combine results from children
         for (int i = 0; i < threads.length; i++) {
-            determineBlinkingDistAction child = (determineBlinkingDistAction) threads[i];
+            primaryPassAction child = (primaryPassAction) threads[i];
             for (int j = 0; j < child.binsBlink.length; j++) {
                 _binsBlink[j] += child.binsBlink[j];
                 _binsNoBlink[j] += child.binsNoBlink[j];

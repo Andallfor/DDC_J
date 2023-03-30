@@ -42,9 +42,13 @@ public class DDC_ implements PlugIn {
 
 		LOC_FINAL = (MLCell) mfr.getMLArray("LocalizationsFinal");
 		FRAME_INFO = (MLCell) mfr.getMLArray("Frame_Information");
+		int numImages = FRAME_INFO.getDimensions()[1];
 
-		blinkingDistribution blinkDist = new blinkingDistribution(LOC_FINAL, FRAME_INFO, N, res, maxLocDist);
-		blinkDist.run();
+		initialPass pass1 = new initialPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist);
+		pass1.run();
+
+		blinkingDistribution blinkDist = new blinkingDistribution(N, numImages);
+		blinkDist.run(pass1.processedData);
     }
 
     public static void main(String[] args) throws Exception {
