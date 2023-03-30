@@ -1,23 +1,20 @@
-package com.andallfor.imagej;
+package com.andallfor.imagej.determineBlinkingDist;
 
-public class determineBlinkingDistChild implements Runnable {
-    private double[] frame;
-    private double[][] loc;
+import com.andallfor.imagej.util;
+import com.andallfor.imagej.imagePass.imagePassAction;
+
+public class determineBlinkingDistAction extends imagePassAction {
+    private int N, res;
     private double max;
-    private int N, res, start, end;
 
-    // store locally in order to prevent race conditions
     public int[] binsBlink, binsNoBlink;
     public int[][] binsFittingBlink;
+    public int[] distanceMatrixCount;
 
-    public determineBlinkingDistChild(double[] frame, double[][] loc, int start, int end, double max, int res, int N) {
-        this.frame = frame;
-        this.loc = loc;
-        this.start = start;
-        this.end = end;
-        this.max = max;
-        this.res = res;
+    public determineBlinkingDistAction(double max, int res, int N) {
         this.N = N;
+        this.res = res;
+        this.max = max; 
     }
 
     public void run() {
@@ -33,7 +30,7 @@ public class determineBlinkingDistChild implements Runnable {
                 // again there is no == operator here
                 // since this needs to be acc im assuming thats intentional
                 // if not this can be optimized by removing frameDist > N
-                if (frameDist < N) incrementBin(binsBlink, locDist);    
+                if (frameDist < N) incrementBin(binsBlink, locDist);
                 else if (N * 5 > frameDist && frameDist > N) incrementBin(binsNoBlink, locDist);
 
                 // again matlab is 1 based so convert to 0 based here
@@ -45,5 +42,12 @@ public class determineBlinkingDistChild implements Runnable {
     private void incrementBin(int[] b, double v) {
         if (v > max) b[b.length - 1]++;
         else b[(int) (v / res)]++;
+    }
+
+    public imagePassAction createSelf(double[] frame, double[][] loc, double ...parameters) {
+        determineBlinkingDistAction act = new determineBlinkingDistAction((double) parameters[0], (int) parameters[1], (int) parameters[2]);
+        act.frame = frame;
+        act.loc = loc;
+        return act;
     }
 }

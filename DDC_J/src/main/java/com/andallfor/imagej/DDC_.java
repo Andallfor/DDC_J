@@ -6,6 +6,7 @@ import ij.plugin.PlugIn;
 
 import java.io.IOException;
 
+import com.andallfor.imagej.determineBlinkingDist.blinkingDistribution;
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLCell;
 
@@ -18,6 +19,7 @@ import com.jmatio.types.MLCell;
  * maybe copy over comments from matlab code
  * sort out licenses
  * replace threads[0].binsBlink.length with a constant/predefined
+ * rename blinkingDistChild and parent to better reflect their roles- the first pass over the data
  */
 
 public class DDC_ implements PlugIn {
@@ -25,7 +27,8 @@ public class DDC_ implements PlugIn {
 
 	private int N = 200;
 	private int res = 80;
-	private double maxDist = 2916.1458332736643;
+	private double maxLocDist = 2916.1458332736643;
+	private double maxFrameDist = 40114;
 
 	private MLCell LOC_FINAL, FRAME_INFO;
 
@@ -40,7 +43,7 @@ public class DDC_ implements PlugIn {
 		LOC_FINAL = (MLCell) mfr.getMLArray("LocalizationsFinal");
 		FRAME_INFO = (MLCell) mfr.getMLArray("Frame_Information");
 
-		blinkingDistribution blinkDist = new blinkingDistribution(LOC_FINAL, FRAME_INFO, N, res, maxDist);
+		blinkingDistribution blinkDist = new blinkingDistribution(LOC_FINAL, FRAME_INFO, N, res, maxLocDist);
 		blinkDist.run();
     }
 

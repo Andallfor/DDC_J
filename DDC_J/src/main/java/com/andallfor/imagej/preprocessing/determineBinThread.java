@@ -1,8 +1,10 @@
-package com.andallfor.imagej;
+package com.andallfor.imagej.preprocessing;
+
+import com.andallfor.imagej.util;
 
 public class determineBinThread implements Runnable {
     public int iter, countBlink, countNoBlink;
-    public double maxLocDist;
+    public double maxLocDist, maxFrameDist;
     public int[] binsBlink, binsNoBlink;
     private int N;
     private double[][] loc;
@@ -31,6 +33,7 @@ public class determineBinThread implements Runnable {
                 double frameDist = Math.abs(fInfo[i] - fInfo[j]);
 
                 if (locDist > maxLocDist) maxLocDist = locDist;
+                if (frameDist > maxFrameDist) maxFrameDist = frameDist;
                 
                 // no = comparison in src, assuming thats a typo/oversight
                 // int division bc bin size does not need to be perfect

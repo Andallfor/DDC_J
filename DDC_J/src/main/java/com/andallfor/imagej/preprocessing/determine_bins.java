@@ -1,4 +1,4 @@
-package com.andallfor.imagej;
+package com.andallfor.imagej.preprocessing;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,6 +11,7 @@ import ij.ImageJ;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 
+import com.andallfor.imagej.util;
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLCell;
 import com.jmatio.types.MLDouble;
@@ -58,6 +59,7 @@ public class determine_bins implements PlugIn {
         // get max dist in locFinal
         int[] expectedSize = LOC_FINAL.getDimensions();
         double maxLocDist = 0;
+        double maxFrameDist = 0;
         ArrayList<determineBinThread> threads = new ArrayList<determineBinThread>();
 
         ExecutorService es = Executors.newCachedThreadPool();
@@ -82,7 +84,10 @@ public class determine_bins implements PlugIn {
         }
 
         // get max dist out of all threads
-        for (determineBinThread thread : threads) if (thread.maxLocDist > maxLocDist) maxLocDist = thread.maxLocDist;
+        for (determineBinThread thread : threads) {
+            if (thread.maxLocDist > maxLocDist) maxLocDist = thread.maxLocDist;
+            if (thread.maxFrameDist > maxFrameDist) maxFrameDist = thread.maxFrameDist;
+        }
 
         // utilize binary search-esq alg to determine correct bin size
         // 0 -> 150 step size of 10
@@ -159,7 +164,7 @@ public class determine_bins implements PlugIn {
             else left = m;
         }
 
-        IJ.showMessage("The predicted resolution is " + res + "\nMax Localization Distance is " + maxLocDist);
+        IJ.showMessage("The predicted resolution is " + res + "\nMax localization distance is " + maxLocDist + "\nMax frame distance is " + maxFrameDist);
     }
 
     private double[] sortProbBins(int[] data, int binStep, int dataQuant, int binCount, double dataN) {

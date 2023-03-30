@@ -1,8 +1,9 @@
-package com.andallfor.imagej;
+package com.andallfor.imagej.preprocessing;
 
 import java.io.IOException;
 import java.util.Arrays;
 
+import com.andallfor.imagej.util;
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLCell;
 import com.jmatio.types.MLDouble;
