@@ -58,8 +58,6 @@ public class determine_bins implements PlugIn {
 
         // get max dist in locFinal
         int[] expectedSize = LOC_FINAL.getDimensions();
-        double maxLocDist = 0;
-        double maxFrameDist = 0;
         ArrayList<determineBinThread> threads = new ArrayList<determineBinThread>();
 
         ExecutorService es = Executors.newCachedThreadPool();
@@ -83,10 +81,12 @@ public class determine_bins implements PlugIn {
             return;
         }
 
-        // get max dist out of all threads
+        // get max values out of all threads
+        double maxLocDist = 0, maxFrameDist = 0, maxFrame = 0;
         for (determineBinThread thread : threads) {
             if (thread.maxLocDist > maxLocDist) maxLocDist = thread.maxLocDist;
             if (thread.maxFrameDist > maxFrameDist) maxFrameDist = thread.maxFrameDist;
+            if (thread.maxFrame > maxFrame) maxFrame = thread.maxFrame;
         }
 
         // utilize binary search-esq alg to determine correct bin size
@@ -164,7 +164,7 @@ public class determine_bins implements PlugIn {
             else left = m;
         }
 
-        IJ.showMessage("The predicted resolution is " + res + "\nMax localization distance is " + maxLocDist + "\nMax frame distance is " + maxFrameDist);
+        IJ.showMessage("The predicted resolution is " + res + "\nMax localization distance is " + maxLocDist + "\nMax frame distance is " + maxFrameDist + "\nMax frame value is " + maxFrame);
     }
 
     private double[] sortProbBins(int[] data, int binStep, int dataQuant, int binCount, double dataN) {

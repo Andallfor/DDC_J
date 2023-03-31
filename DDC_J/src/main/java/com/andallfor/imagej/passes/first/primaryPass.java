@@ -8,18 +8,20 @@ import com.andallfor.imagej.imagePass.imagePDistExecutor;
 import com.jmatio.types.MLCell;
 import com.jmatio.types.MLDouble;
 
-public class initialPass {
+public class primaryPass {
     private int N, res;
     private int[] expectedSize;
-    private double maxDist;
+    private double maxLocDist, maxFrameDist, maxFrameValue;
     private MLCell LOC_FINAL, FRAME_INFO;
 
     public primaryPassCollector[] processedData;
 
-    public initialPass(MLCell LOC_FINAL, MLCell FRAME_INFO, int N, int res, double maxDist) {
+    public primaryPass(MLCell LOC_FINAL, MLCell FRAME_INFO, int N, int res, double maxLocDist, double maxFrameDist, double maxFrameValue) {
         this.N = N;
         this.res = res;
-        this.maxDist = maxDist;
+        this.maxLocDist = maxLocDist;
+        this.maxFrameDist = maxFrameDist;
+        this.maxFrameValue = maxFrameValue;
         this.LOC_FINAL = LOC_FINAL;
         this.FRAME_INFO = FRAME_INFO;
         this.expectedSize = LOC_FINAL.getDimensions();
@@ -30,15 +32,15 @@ public class initialPass {
         ExecutorService es = Executors.newCachedThreadPool();
 
         processedData = new primaryPassCollector[expectedSize[1]];
-        primaryPassAction act = new primaryPassAction(0, 0, 0); // this is just a holder bc fuck java!
+        primaryPassAction act = new primaryPassAction(0, 0, 0, 0, 0); // this is just a holder bc fuck java!
         for (int i = 0; i < expectedSize[1]; i++) {
             double[][] loc = ((MLDouble) LOC_FINAL.get(i)).getArray();
 			double[] fInfo = ((MLDouble) FRAME_INFO.get(i)).getArray()[0];
 
-            primaryPassCollector collector = new primaryPassCollector(maxDist, res, N);
+            primaryPassCollector collector = new primaryPassCollector(maxLocDist, res, N);
             imagePDistExecutor executor = new imagePDistExecutor(fInfo, loc, 10_000_00);
 
-            executor.setParameters(act, collector, maxDist, res, N);
+            executor.setParameters(act, collector, maxLocDist, maxFrameDist, maxFrameValue, res, N);
 
             processedData[i] = collector;
             es.execute(executor);

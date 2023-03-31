@@ -4,8 +4,9 @@ import com.andallfor.imagej.util;
 
 public class determineBinThread implements Runnable {
     public int iter, countBlink, countNoBlink;
-    public double maxLocDist, maxFrameDist;
+    public double maxLocDist, maxFrameDist, maxFrame;
     public int[] binsBlink, binsNoBlink;
+
     private int N;
     private double[][] loc;
     private double[] fInfo;
@@ -40,6 +41,8 @@ public class determineBinThread implements Runnable {
                 if (frameDist < N) _binsBlink[(int) locDist / locQuantization]++;
                 else _binsNoBlink[(int) locDist / locQuantization]++;
             }
+
+            if (fInfo[i] > maxFrame) maxFrame = fInfo[i];
         }
 
         binsBlink = compressArray(_binsBlink);

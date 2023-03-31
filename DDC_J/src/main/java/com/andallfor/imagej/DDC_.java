@@ -5,8 +5,10 @@ import ij.ImageJ;
 import ij.plugin.PlugIn;
 
 import java.io.IOException;
+import java.util.Arrays;
 
-import com.andallfor.imagej.passes.first.initialPass;
+import com.andallfor.imagej.passes.first.primaryPass;
+import com.andallfor.imagej.passes.second.secondaryPass;
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLCell;
 
@@ -20,6 +22,7 @@ import com.jmatio.types.MLCell;
  * sort out licenses
  * replace threads[0].binsBlink.length with a constant/predefined
  * trying replacing matrixes with arr, might be faster
+ * pre-store end points in for loops to stop java from calc them every single time
  */
 
 public class DDC_ implements PlugIn {
@@ -29,11 +32,13 @@ public class DDC_ implements PlugIn {
 	private int res = 80;
 	private double maxLocDist = 2916.1458332736643;
 	private double maxFrameDist = 40114;
+	private double maxFrameValue = 40117;
 
 	private MLCell LOC_FINAL, FRAME_INFO;
 
     public void run(String arg) {
 		long trueS1 = System.currentTimeMillis();
+
 		MatFileReader mfr = null;
         try {mfr = new MatFileReader(filePath);}
         catch (IOException e) {
@@ -47,11 +52,16 @@ public class DDC_ implements PlugIn {
 
 		System.out.println("Mat file reading time: " + (System.currentTimeMillis() - trueS1) + "\n");
 
-		initialPass pass1 = new initialPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist);
-		pass1.run();
+		primaryPass firstPass = new primaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, maxFrameDist, maxFrameValue);
+		firstPass.run();
+
+		secondaryPass secondPass = new secondaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, maxFrameValue, firstPass.processedData);
+		secondPass.run();
 
 		blinkingDistribution blinkDist = new blinkingDistribution(N, numImages);
-		blinkDist.run(pass1.processedData);
+		blinkDist.run(firstPass.processedData);
+
+		System.out.println(Arrays.toString(secondPass.processedData[0].trueDist));
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }
