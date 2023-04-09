@@ -10,6 +10,7 @@ public class secondaryPassCollector implements imagePassCallback {
     private int res, N;
 
     public double[] trueDist;
+    public double[] trueDistBig;
 
     public secondaryPassCollector(double max, int res, int N) {
         this.max = max;
@@ -38,9 +39,13 @@ public class secondaryPassCollector implements imagePassCallback {
         // True_Distribution (in src its spelled True_Distribuiton fyi incase you're ctrl+f for it)
         int trueDistCount = IntStream.of(_trueDist).sum();
 
+        // TODO: this isnt a 1:1 match! (like 8ish digits of acc then deviates)
         trueDist = new double[_trueDist.length];
         // dont want 0 prob
         if (_trueDist[_trueDist.length - 1] == 0) trueDist = new double[_trueDist.length - 1];
         for (int i = 0; i < trueDist.length; i++) trueDist[i] = (double) _trueDist[i] / (double) trueDistCount;
+
+        trueDistBig = new double[trueDist.length / 2];
+        for (int i = 0; i < trueDistBig.length; i++) trueDistBig[i] = trueDist[i * 2] + trueDist[i * 2 + 1];
     }
 }

@@ -5,7 +5,6 @@ import ij.ImageJ;
 import ij.plugin.PlugIn;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import com.andallfor.imagej.passes.first.primaryPass;
 import com.andallfor.imagej.passes.second.secondaryPass;
@@ -23,6 +22,7 @@ import com.jmatio.types.MLCell;
  * replace threads[0].binsBlink.length with a constant/predefined
  * trying replacing matrixes with arr, might be faster
  * pre-store end points in for loops to stop java from calc them every single time
+ * may be worth it to convert FRAME_INFO into an int array before hand
  */
 
 public class DDC_ implements PlugIn {
@@ -45,7 +45,7 @@ public class DDC_ implements PlugIn {
             IJ.showMessage("Invalid File Path");
             return;
         }
-
+ 
 		LOC_FINAL = (MLCell) mfr.getMLArray("LocalizationsFinal");
 		FRAME_INFO = (MLCell) mfr.getMLArray("Frame_Information");
 		int numImages = FRAME_INFO.getDimensions()[1];
@@ -55,13 +55,14 @@ public class DDC_ implements PlugIn {
 		primaryPass firstPass = new primaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, maxFrameDist, maxFrameValue);
 		firstPass.run();
 
-		secondaryPass secondPass = new secondaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, maxFrameValue, firstPass.processedData);
-		secondPass.run();
-
 		blinkingDistribution blinkDist = new blinkingDistribution(N, numImages);
 		blinkDist.run(firstPass.processedData);
 
-		System.out.println(Arrays.toString(secondPass.processedData[0].trueDist));
+		secondaryPass secondPass = new secondaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, firstPass.processedData, blinkDist);
+		secondPass.run();
+
+		// deviation_in_prob = m_mat
+		// d_scale_store = d_scale_store
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }

@@ -9,7 +9,8 @@
         "ojalgo",
         "scipy",
         "thatll",
-        "vect"
+        "vect",
+        "yada"
     ],
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.debug.settings.onBuildFailureProceed": true

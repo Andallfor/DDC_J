@@ -13,7 +13,7 @@ import org.orangepalantir.leastsquares.Function;
 public class blinkingDistribution {
     private int N, numImages;
 
-    public double[] x_overall, distribution_for_blink;
+    public double[] x_overall, distribution_for_blink, d_scale_store;
     public double[][] m_mat;
 
     public blinkingDistribution(int N, int numImages) {
@@ -112,7 +112,7 @@ public class blinkingDistribution {
 		long finalTime = System.currentTimeMillis();
 		System.out.println("Blinking dist fitting time: " + (finalTime - fittingTime));
 
-		double[] d_scale_store = new double[N];
+		d_scale_store = new double[N];
 		x_overall = new double[N]; // we need a copy of d_scale_store since we continue to modify this later
 		for (int i = 0; i < N; i++) {
 			double sum = 0;
