@@ -62,7 +62,7 @@ public class DDC_ implements PlugIn {
 		secondPass.run();
 
 		// deviation_in_prob = m_mat
-		// d_scale_store = d_scale_store
+		// d_scale_store = d_scale_store (since d_scale_store is a modified x_overall, which is done later in src but we do here)
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }

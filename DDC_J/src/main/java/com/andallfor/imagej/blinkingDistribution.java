@@ -8,7 +8,6 @@ import org.ujmp.core.doublematrix.DoubleMatrix2D;
 import com.andallfor.imagej.passes.first.primaryPassCollector;
 
 import org.orangepalantir.leastsquares.Fitter;
-import org.orangepalantir.leastsquares.Function;
 
 public class blinkingDistribution {
     private int N, numImages;
@@ -71,28 +70,8 @@ public class blinkingDistribution {
 		System.out.println("Blinking dist matrix one time: " + (fittingTime - s1));
 
 		// calc d_scale_store
-		Function fun = new Function() {
-            @Override
-            public double evaluate(double[] values, double[] parameters) {
-                double x = parameters[0];
-                double a = values[0];
-                double b = values[1];
-
-                return x * a + (1 - x) * b;
-            }
-
-            @Override
-            public int getNParameters() {
-                return 1;
-            }
-
-            @Override
-            public int getNInputs() {
-                return 2;
-            }
-        };
-
-		Fitter solver = new NonLinearSolver(fun);
+		
+		Fitter solver = new NonLinearSolver(linearSolver.func);
 		double[] initialPara = new double[] {1};
 		double[][] _d_scale_store = new double[numImages][N];
 		for (int i = 0; i < numImages; i++) {

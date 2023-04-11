@@ -6,11 +6,12 @@ import com.andallfor.imagej.util;
 import com.andallfor.imagej.imagePass.imagePassAction;
 
 public class secondaryPassAction extends imagePassAction {
-    private int N, res, imageNum;
+    private int N, res;
     private double maxLocDist;
 
     public int[] binsTrueDist;
-    public int numBlinks = 0;
+    public int numBlinks = 0, imageNum = 0;
+    public double maxLocDistControl = 0;
 
     public secondaryPassAction(double maxLocDist, int res, int N, int imageNum) {
         this.N = N;
@@ -41,7 +42,10 @@ public class secondaryPassAction extends imagePassAction {
                 double locDist = util.dist(loc[i], loc[j]);
                 double frameDist = Math.abs(frame[i] - frame[j]);
 
-                if (frameDist > N && secondaryPass.distMatrixValidator[imageNum][(int) frameDist - N - 1]) incrementBin(binsTrueDist, locDist);
+                if (frameDist > N && secondaryPass.distMatrixValidator[imageNum][(int) frameDist - N - 1]) {
+                    incrementBin(binsTrueDist, locDist);
+                    if (locDist > maxLocDistControl) maxLocDistControl = locDist;
+                }
 
                 // this is similar to the second check (Math.abs(distMatrix[0]...)), but rather than check each element (or rather the mins and maxes) we check the start and end
                 if (frameDist <= N && frameDist != 0) {

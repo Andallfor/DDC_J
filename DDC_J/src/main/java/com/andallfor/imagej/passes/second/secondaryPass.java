@@ -18,8 +18,9 @@ public class secondaryPass {
     private MLCell LOC_FINAL, FRAME_INFO;
 
     public static boolean[][] distMatrixValidator;
+    public static double[][][] binsFittingBlink;
     public static double[][] deviation_in_prob;
-    public static double[] deviation_in_prob_mean;
+    public static double[] deviation_in_prob_mean, d_scale_store, distribution_for_blink;
 
     public secondaryPassCollector[] processedData;
 
@@ -40,6 +41,12 @@ public class secondaryPass {
             for (int j = 0; j < deviation_in_prob[0].length; j++) deviation_in_prob_mean[i] += deviation_in_prob[i][j];
             deviation_in_prob_mean[i] /= (double) deviation_in_prob[0].length;
         }
+
+        binsFittingBlink = new double[primaryData.length][N][primaryData[0].binsFittingBlink[0].length];
+        for (int i = 0; i < primaryData.length; i++) binsFittingBlink[i] = primaryData[i].binsFittingBlink;
+
+        d_scale_store = blinkDist.d_scale_store;
+        distribution_for_blink = blinkDist.distribution_for_blink;
     }
 
     public void run() {
