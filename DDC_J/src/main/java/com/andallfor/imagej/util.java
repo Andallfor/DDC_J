@@ -50,6 +50,12 @@ public class util {
         return arr;
     }
 
+    public static double[] arrSumOut(double[] a, double[] b) {
+        double[] arr = new double[a.length];
+        for (int i = 0; i < a.length; i++) arr[i] = a[i] + b[i];
+        return arr;
+    }
+
     public static double[] compressBins(double[] src) {
         double[] out = new double[(src.length + 1) / 2];
         int reminder = src.length % 2;

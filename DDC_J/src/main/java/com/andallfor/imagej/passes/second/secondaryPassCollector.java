@@ -52,7 +52,9 @@ public class secondaryPassCollector implements imagePassCallback {
         //---------------------------------------------------//
         // Determine_Deviation_in_Probability8.m             //
         //---------------------------------------------------//
+        // this isnt perfectly accurate, only a few digits are the same. not sure why- probably something to do with trueDist?
         double[] localDScaleStore = new double[secondaryPass.d_scale_store.length];
+        double[][] probDist = new double[N][trueDist.length];
         Fitter solver = new NonLinearSolver(linearSolver.func);
         double[] initialPara = new double[] {1};
 
@@ -62,6 +64,8 @@ public class secondaryPassCollector implements imagePassCallback {
 
         double[][] t = new double[trueDistBig.length][2];
         for (int j = 0; j < trueDistBig.length; j++) {t[j] = new double[] {trueDistBig[j], distBlinkBig[j]};}
+
+        double minProb = 1000;
 
         for (int i = 0; i < N; i++) {
             // remove zero prob from _d_blink
@@ -82,9 +86,24 @@ public class secondaryPassCollector implements imagePassCallback {
             double x = solver.getParameters()[0];
             if (x > 1) x = 1;
             else if (x < 0) x = 0.0000001;
+            if (i == N - 1) x = 1;
             localDScaleStore[i] = x;
+
+            double[] a = util.arrMultiOut(distBlink, 1.0 - x);
+            double[] b = util.arrMultiOut(trueDist, x);
+
+            probDist[i] = util.arrSumOut(a, b);
+
+            for (int j = 0; j < probDist[i].length; j++) {
+                if (probDist[i][j] <= 0) continue;
+                if (probDist[i][j] < minProb) minProb = probDist[i][j];
+            }
         }
 
-        localDScaleStore[localDScaleStore.length - 1] = 1;
+        for (int i = 0; i < probDist.length; i++) {
+            for (int j = 0; j < probDist[i].length; j++) {
+                probDist[i][j] += minProb;
+            }
+        }
     }
 }
