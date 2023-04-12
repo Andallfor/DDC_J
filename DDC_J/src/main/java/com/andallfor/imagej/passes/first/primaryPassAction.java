@@ -1,5 +1,7 @@
 package com.andallfor.imagej.passes.first;
 
+import java.util.ArrayList;
+
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.imagePass.imagePassAction;
 
@@ -10,6 +12,8 @@ public class primaryPassAction extends imagePassAction {
     public int[] binsBlink, binsNoBlink;
     public int[][] binsFittingBlink;
     public byte[] distMatrixValidator;
+    public int[] density;
+    public ArrayList<Integer> framesWithMulti; // stores indexes of frame value, not the actual frame value
 
     public primaryPassAction(double maxLocDist, double maxFrameDist, double maxFrameValue, int res, int N) {
         this.N = N;
@@ -23,6 +27,15 @@ public class primaryPassAction extends imagePassAction {
         binsBlink =         new int   [(int) Math.floor(maxLocDist / res) + 1];
         binsNoBlink =       new int   [(int) Math.floor(maxLocDist / res) + 1];
         binsFittingBlink =  new int[N][(int) Math.floor(maxLocDist / res) + 1];
+        density =           new int[frame.length];
+        boolean[] _framesWithMultiBuffer = new boolean[(int) maxFrameValue]; // io from arrList is expensive, but we also dont want to iterate across the entire arr
+                                                                             // so instead write to a buffer here, and if we succeed then write to arrList. this is better
+                                                                             // because it prevents autoboxing (since arrList has to be with objects for reading and we use
+                                                                             // primitives). additionally memory cost is fine since this is boolean (1 byte (not 1 bit due to padding))
+                                                                             // the rest of the program is like 1.5 gib as of writing, so 0.01 mb isnt going to do anything
+        framesWithMulti = new ArrayList<Integer>();
+        double resThreshold = res * 4;
+        double distanceDensityThreshold = res * 2;
 
         distMatrixValidator = new byte[(int) maxFrameDist - N];
 
@@ -48,6 +61,16 @@ public class primaryPassAction extends imagePassAction {
                     // rather than have an if < 100 ++, this bit shifting operation will auto add 1 if < 128 and 0 if >= 128
                     // but since java is bad theres no unsigned bytes so it'll wrap to -128 but can just check for it afterwards
                     distMatrixValidator[(int) frameDist - N - 1] += 1 - ((distMatrixValidator[(int) frameDist - N - 1] >> 7) & 1);
+                }
+
+                if (frameDist == 0 && !_framesWithMultiBuffer[(int) frame[i]] && locDist < resThreshold) {
+                    _framesWithMultiBuffer[(int) frame[i]] = true;
+                    framesWithMulti.add(i);
+                }
+
+                if (locDist <= distanceDensityThreshold && frameDist > N) {
+                    density[i]++;
+                    density[j]++;
                 }
             }
         }

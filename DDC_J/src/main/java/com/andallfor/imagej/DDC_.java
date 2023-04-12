@@ -4,6 +4,8 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
 
+import java.util.Arrays;
+
 import java.io.IOException;
 
 import com.andallfor.imagej.passes.first.primaryPass;
@@ -16,13 +18,14 @@ import com.jmatio.types.MLCell;
  * Currently quite a few things are not supported:
  * Photon weighted correction
  * error checking
- * 		sub arr of frame and loc should be the same
+ * 		sub arr length of frame and loc should be the same
  * maybe copy over comments from matlab code
  * sort out licenses
  * replace threads[0].binsBlink.length with a constant/predefined
  * trying replacing matrixes with arr, might be faster
  * pre-store end points in for loops to stop java from calc them every single time
  * may be worth it to convert FRAME_INFO into an int array before hand
+ * usage of true_loc to calc acc in simulated data
  */
 
 public class DDC_ implements PlugIn {
@@ -60,9 +63,6 @@ public class DDC_ implements PlugIn {
 
 		secondaryPass secondPass = new secondaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, firstPass.processedData, blinkDist);
 		secondPass.run();
-
-		// deviation_in_prob = m_mat
-		// d_scale_store = d_scale_store (since d_scale_store is a modified x_overall, which is done later in src but we do here)
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }

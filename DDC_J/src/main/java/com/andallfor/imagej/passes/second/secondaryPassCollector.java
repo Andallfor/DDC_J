@@ -52,7 +52,8 @@ public class secondaryPassCollector implements imagePassCallback {
         //---------------------------------------------------//
         // Determine_Deviation_in_Probability8.m             //
         //---------------------------------------------------//
-        // this isnt perfectly accurate, only a few digits are the same. not sure why- probably something to do with trueDist?
+        // TODO: this isnt perfectly accurate, only a few digits are the same. not sure why- probably something to do with trueDist?
+        // TODO: maybe move this to a separate script- this isnt really "collecting" values, were doing a lot of processing. however, it is convenient as everything is auto threaded
         double[] localDScaleStore = new double[secondaryPass.d_scale_store.length];
         double[][] probDist = new double[N][trueDist.length];
         Fitter solver = new NonLinearSolver(linearSolver.func);
@@ -105,5 +106,13 @@ public class secondaryPassCollector implements imagePassCallback {
                 probDist[i][j] += minProb;
             }
         }
+
+        // TODO: here the src adds a bit of noise to every point in order to account for people rounding their data.
+        // imo an easier fix is just to tell the user to not round their data, and since i don't really feel like it ngl im
+        // not implementing it (yet, amy in the future if this becomes a problem). 
+
+        //---------------------------------------------------//
+        // DDC_MCMC.m (con)                                  //
+        //---------------------------------------------------//
     }
 }

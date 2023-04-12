@@ -1,7 +1,9 @@
 package com.andallfor.imagej.passes.first;
 
+import java.util.HashSet;
 import java.util.stream.IntStream;
 
+import com.andallfor.imagej.util;
 import com.andallfor.imagej.imagePass.imagePassAction;
 import com.andallfor.imagej.imagePass.imagePassCallback;
 
@@ -9,10 +11,11 @@ public class primaryPassCollector implements imagePassCallback {
     private double max;
     private int res, N;
     
-    public double[] binsBlink, binsNoBlink;
+    public double[] binsBlink, binsNoBlink, density;
     public double[][] binsFittingBlink;
     public int[] sortedIndex;
     public boolean[] distMatrixValidator;
+    public HashSet<Integer> framesWithMulti;
 
     public primaryPassCollector(double max, int res, int N) {
         this.max = max;
@@ -24,7 +27,9 @@ public class primaryPassCollector implements imagePassCallback {
         int[] _binsBlink =          new int   [(int) Math.floor(max / res) + 1];
         int[] _binsNoBlink =        new int   [(int) Math.floor(max / res) + 1];
         int[][] _binsFittingBlink = new int[N][(int) Math.floor(max / res) + 1];
+        density =          new double[((primaryPassAction) threads[0]).frame.length];
         byte[] _distMatrixValidator = new byte[((primaryPassAction) threads[0]).distMatrixValidator.length];
+        framesWithMulti = new HashSet<Integer>();
 
         // combine results from children
         for (int i = 0; i < threads.length; i++) {
@@ -50,6 +55,13 @@ public class primaryPassCollector implements imagePassCallback {
                 else if (_distMatrixValidator[j] + cdmv >= 100) _distMatrixValidator[j] = 100;
                 else _distMatrixValidator[j] += cdmv;
             }
+
+            // Frames_W_Multi
+            // we use arrayList in primaryPassAction.java as we prioritize adding speed
+            // however when processing the results we care more about search speed, so use hashSet
+            for (int j = 0; j < child.framesWithMulti.size(); j++) framesWithMulti.add(child.framesWithMulti.get(j));
+
+            for (int j = 0; j < child.density.length; j++) density[j] += child.density[j];
         }
 
         // assemble collected data into desired formats
@@ -93,5 +105,17 @@ public class primaryPassCollector implements imagePassCallback {
         for (int i = 0; i < distMatrixValidator.length; i++) {
             if (_distMatrixValidator[i] == 100) distMatrixValidator[i] = true;
         }
+
+        //---------------------------------------------------//
+        // Density_Calc.m                                    //
+        //---------------------------------------------------//
+
+        // density
+        double densityMin = 1000000, densityMax = 0;
+        for (int i = 0; i < density.length; i++) {
+            if (density[i] < densityMin) densityMin = density[i];
+            if (density[i] > densityMax) densityMax = density[i];
+        }
+        density = util.arrDivOut(util.arrSubOut(density, densityMin), densityMax - densityMin);
     }
 }

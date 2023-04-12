@@ -50,6 +50,18 @@ public class util {
         return arr;
     }
 
+    public static double[] arrSubOut(double[] src, double v) {
+        double[] arr = new double[src.length];
+        for (int i = 0; i < src.length; i++) arr[i] = src[i] - v;
+        return arr;
+    }
+
+    public static double[] arrDivOut(double[] src, double v) {
+        double[] arr = new double[src.length];
+        for (int i = 0; i < src.length; i++) arr[i] = src[i] / v;
+        return arr;
+    }
+
     public static double[] arrSumOut(double[] a, double[] b) {
         double[] arr = new double[a.length];
         for (int i = 0; i < a.length; i++) arr[i] = a[i] + b[i];
