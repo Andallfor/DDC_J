@@ -13,7 +13,7 @@ public class primaryPassCollector implements imagePassCallback {
     
     public double[] binsBlink, binsNoBlink, density;
     public double[][] binsFittingBlink;
-    public int[] sortedIndex;
+    public int[] dOverallCount;
     public boolean[] distMatrixValidator;
     public HashSet<Integer> framesWithMulti;
 
@@ -27,6 +27,7 @@ public class primaryPassCollector implements imagePassCallback {
         int[] _binsBlink =          new int   [(int) Math.floor(max / res) + 1];
         int[] _binsNoBlink =        new int   [(int) Math.floor(max / res) + 1];
         int[][] _binsFittingBlink = new int[N][(int) Math.floor(max / res) + 1];
+        dOverallCount = new int[((primaryPassAction) threads[0]).dOverallCount.length];
         density =          new double[((primaryPassAction) threads[0]).frame.length];
         byte[] _distMatrixValidator = new byte[((primaryPassAction) threads[0]).distMatrixValidator.length];
         framesWithMulti = new HashSet<Integer>();
@@ -62,6 +63,8 @@ public class primaryPassCollector implements imagePassCallback {
             for (int j = 0; j < child.framesWithMulti.size(); j++) framesWithMulti.add(child.framesWithMulti.get(j));
 
             for (int j = 0; j < child.density.length; j++) density[j] += child.density[j];
+
+            for (int j = 0; j < child.dOverallCount.length; j++) dOverallCount[j] += child.dOverallCount[j];
         }
 
         // assemble collected data into desired formats

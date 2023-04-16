@@ -26,6 +26,7 @@ import com.jmatio.types.MLCell;
  * pre-store end points in for loops to stop java from calc them every single time
  * may be worth it to convert FRAME_INFO into an int array before hand
  * usage of true_loc to calc acc in simulated data
+ * check usage of < vs <=, matlab is kinda funky -> loops are (inc, inc), but often comparisons (ex Z2(Z2 < A)) are exclusive
  */
 
 public class DDC_ implements PlugIn {
@@ -63,6 +64,11 @@ public class DDC_ implements PlugIn {
 
 		secondaryPass secondPass = new secondaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, firstPass.processedData, blinkDist);
 		secondPass.run();
+
+		String fancyString = "+ Starting on main MCMC algorithm after " + (System.currentTimeMillis() - trueS1) + " ms +";
+		System.out.println(new String(new char[fancyString.length()]).replace('\0', '='));
+		System.out.println(fancyString);
+		System.out.println(new String(new char[fancyString.length()]).replace('\0', '='));
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }

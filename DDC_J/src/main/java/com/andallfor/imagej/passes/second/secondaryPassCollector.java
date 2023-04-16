@@ -1,8 +1,6 @@
 package com.andallfor.imagej.passes.second;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.stream.IntStream;
 
 import org.orangepalantir.leastsquares.fitters.NonLinearSolver;
 import org.orangepalantir.leastsquares.Fitter;
@@ -109,10 +107,6 @@ public class secondaryPassCollector implements imagePassCallback {
 
         // TODO: here the src adds a bit of noise to every point in order to account for people rounding their data.
         // imo an easier fix is just to tell the user to not round their data, and since i don't really feel like it ngl im
-        // not implementing it (yet, amy in the future if this becomes a problem). 
-
-        //---------------------------------------------------//
-        // DDC_MCMC.m (con)                                  //
-        //---------------------------------------------------//
+        // not implementing it (yet, amy in the future if this becomes a problem).
     }
 }

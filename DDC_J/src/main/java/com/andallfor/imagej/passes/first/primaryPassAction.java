@@ -1,6 +1,7 @@
 package com.andallfor.imagej.passes.first;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.imagePass.imagePassAction;
@@ -9,10 +10,9 @@ public class primaryPassAction extends imagePassAction {
     private int N, res;
     private double maxLocDist, maxFrameDist, maxFrameValue;
 
-    public int[] binsBlink, binsNoBlink;
+    public int[] binsBlink, binsNoBlink, density, dOverallCount;
     public int[][] binsFittingBlink;
     public byte[] distMatrixValidator;
-    public int[] density;
     public ArrayList<Integer> framesWithMulti; // stores indexes of frame value, not the actual frame value
 
     public primaryPassAction(double maxLocDist, double maxFrameDist, double maxFrameValue, int res, int N) {
@@ -26,8 +26,15 @@ public class primaryPassAction extends imagePassAction {
     public void run() {
         binsBlink =         new int   [(int) Math.floor(maxLocDist / res) + 1];
         binsNoBlink =       new int   [(int) Math.floor(maxLocDist / res) + 1];
+        dOverallCount =     new int   [(int) Math.pow((2 * Math.floor(maxLocDist / res) + 1), loc[0].length)]; // *2 bc distance could be "behind" origin
         binsFittingBlink =  new int[N][(int) Math.floor(maxLocDist / res) + 1];
         density =           new int[frame.length];
+
+        int dOverallBounds = (int) (Math.floor(maxLocDist / res) + 1) * 2;
+        int dOverallBoundsHalf = (int) Math.floor(maxLocDist / res) + 1;
+        int[] dOverallHashOffset = new int[loc[0].length];
+        for (int i = 0; i < loc[0].length; i++) dOverallHashOffset[i] = (int) Math.pow(dOverallBounds, i);
+
         boolean[] _framesWithMultiBuffer = new boolean[(int) maxFrameValue]; // io from arrList is expensive, but we also dont want to iterate across the entire arr
                                                                              // so instead write to a buffer here, and if we succeed then write to arrList. this is better
                                                                              // because it prevents autoboxing (since arrList has to be with objects for reading and we use
@@ -73,6 +80,16 @@ public class primaryPassAction extends imagePassAction {
                     density[j]++;
                 }
             }
+
+            // because loc can be of varying dimensions (2d, 3d, etc) rather than have unique cases for each dimension,
+            // we hash all dimensions into one index that is reversible
+            // x + y * xBounds + z * yBounds * xBounds 
+            // however all the bounds are the same so it becomes x + y * b + z * b * b
+            int hash = 0;
+            for (int k = 0; k < loc[i].length; k++) hash += (Math.round(loc[i][k] / res) + dOverallBoundsHalf) * dOverallHashOffset[k];
+            dOverallCount[hash]++;
+            //int x = ((hash % dOverallHashOffset[1]) - dOverallBoundsHalf) * res;
+            //int y = ((hash / dOverallHashOffset[1]) - dOverallBoundsHalf) * res;
         }
     }
 
