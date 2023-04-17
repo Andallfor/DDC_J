@@ -1,7 +1,7 @@
 package com.andallfor.imagej.passes.first;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.imagePass.imagePassAction;
@@ -10,7 +10,8 @@ public class primaryPassAction extends imagePassAction {
     private int N, res;
     private double maxLocDist, maxFrameDist, maxFrameValue;
 
-    public int[] binsBlink, binsNoBlink, density, dOverallCount;
+    public int[] binsBlink, binsNoBlink, density;
+    public HashMap<Integer, Integer> dOverallCount;
     public int[][] binsFittingBlink;
     public byte[] distMatrixValidator;
     public ArrayList<Integer> framesWithMulti; // stores indexes of frame value, not the actual frame value
@@ -26,7 +27,8 @@ public class primaryPassAction extends imagePassAction {
     public void run() {
         binsBlink =         new int   [(int) Math.floor(maxLocDist / res) + 1];
         binsNoBlink =       new int   [(int) Math.floor(maxLocDist / res) + 1];
-        dOverallCount =     new int   [(int) Math.pow((2 * Math.floor(maxLocDist / res) + 1), loc[0].length)]; // *2 bc distance could be "behind" origin
+
+        dOverallCount = new HashMap<Integer, Integer>(frame.length); // worse case scenario
         binsFittingBlink =  new int[N][(int) Math.floor(maxLocDist / res) + 1];
         density =           new int[frame.length];
 
@@ -85,11 +87,9 @@ public class primaryPassAction extends imagePassAction {
             // we hash all dimensions into one index that is reversible
             // x + y * xBounds + z * yBounds * xBounds 
             // however all the bounds are the same so it becomes x + y * b + z * b * b
-            int hash = 0;
-            for (int k = 0; k < loc[i].length; k++) hash += (Math.round(loc[i][k] / res) + dOverallBoundsHalf) * dOverallHashOffset[k];
-            dOverallCount[hash]++;
-            //int x = ((hash % dOverallHashOffset[1]) - dOverallBoundsHalf) * res;
-            //int y = ((hash / dOverallHashOffset[1]) - dOverallBoundsHalf) * res;
+            Integer h = util.hashNDPoint(loc[i], res, dOverallBoundsHalf, dOverallHashOffset);
+            if (dOverallCount.containsKey(h)) dOverallCount.put(h, dOverallCount.get(h) + 1);
+            else dOverallCount.put(h, 1);
         }
     }
 

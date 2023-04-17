@@ -114,7 +114,7 @@ public class secondaryPassCollector implements imagePassCallback {
         // not implementing it (yet, amy in the future if this becomes a problem).
 
         if (child.imageNum == 0) {
-            MCMCThread mcmc = new MCMCThread(secondaryPass.primaryData[child.imageNum].framesWithMulti, child.frame, child.loc, child.nonBlink, child.trajectories);
+            MCMCThread mcmc = new MCMCThread(secondaryPass.primaryData[child.imageNum].framesWithMulti, child.frame, child.loc, child.nonBlink, child.trajectories, child.locBlink);
 
             mcmc.calcOptimalFrameOrder();
         }

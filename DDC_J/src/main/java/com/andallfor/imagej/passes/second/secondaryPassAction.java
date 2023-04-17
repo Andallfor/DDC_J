@@ -13,6 +13,7 @@ public class secondaryPassAction extends imagePassAction {
     public int[] binsTrueDist, trajectories;
     public int nonBlink = 0, imageNum = 0;
     public double maxLocDistControl = 0;
+    public boolean[] locBlink;
 
     public secondaryPassAction(double maxLocDist, int res, int N, int imageNum) {
         this.N = N;
@@ -24,7 +25,7 @@ public class secondaryPassAction extends imagePassAction {
     public void run() { // the more comments i write the less i understand what the fuck i am doing
         binsTrueDist = new int[(int) Math.floor(maxLocDist / res) + 1];
         trajectories = new int[frame.length]; // value of 0 means no trajectory. otherwise contains the value of a trajectoryHash
-        boolean[] locBlink = new boolean[frame.length];
+        locBlink = new boolean[frame.length];
         boolean[] locLinked = new boolean[frame.length];
         double[][] framerCache = new double[frame.length][2]; // [trajectory hash][min, max]
         int trajectoryHash = 1; // offset by -1, 0 is used to signify that there is no trajectory

@@ -1,5 +1,6 @@
 package com.andallfor.imagej.passes.first;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.stream.IntStream;
 
@@ -13,9 +14,9 @@ public class primaryPassCollector implements imagePassCallback {
     
     public double[] binsBlink, binsNoBlink, density;
     public double[][] binsFittingBlink;
-    public int[] dOverallCount;
     public boolean[] distMatrixValidator;
     public HashSet<Integer> framesWithMulti;
+    public HashMap<Integer, Integer> dOverallCount; // position hash, num values
 
     public primaryPassCollector(double max, int res, int N) {
         this.max = max;
@@ -24,12 +25,13 @@ public class primaryPassCollector implements imagePassCallback {
     }
 
     public void callback(imagePassAction[] threads) {
-        int[] _binsBlink =          new int   [(int) Math.floor(max / res) + 1];
-        int[] _binsNoBlink =        new int   [(int) Math.floor(max / res) + 1];
-        int[][] _binsFittingBlink = new int[N][(int) Math.floor(max / res) + 1];
-        dOverallCount = new int[((primaryPassAction) threads[0]).dOverallCount.length];
-        density =          new double[((primaryPassAction) threads[0]).frame.length];
+        int[] _binsBlink =            new int   [(int) Math.floor(max / res) + 1];
+        int[] _binsNoBlink =          new int   [(int) Math.floor(max / res) + 1];
+        int[][] _binsFittingBlink =   new int[N][(int) Math.floor(max / res) + 1];
+        density =                     new double[((primaryPassAction) threads[0]).frame.length];
         byte[] _distMatrixValidator = new byte[((primaryPassAction) threads[0]).distMatrixValidator.length];
+
+        dOverallCount = new HashMap<Integer, Integer>();
         framesWithMulti = new HashSet<Integer>();
 
         // combine results from children
@@ -64,8 +66,12 @@ public class primaryPassCollector implements imagePassCallback {
 
             for (int j = 0; j < child.density.length; j++) density[j] += child.density[j];
 
-            for (int j = 0; j < child.dOverallCount.length; j++) dOverallCount[j] += child.dOverallCount[j];
+            // dOverallCount can be pretty big, so dont unnecessarily copy over each value
+            if (threads.length == 1) dOverallCount = child.dOverallCount;
+            else child.dOverallCount.forEach((k, v) -> dOverallCount.merge(k, v, (v1, v2) -> v1 + v2));
         }
+
+        System.out.println(dOverallCount.keySet().size());
 
         // assemble collected data into desired formats
 

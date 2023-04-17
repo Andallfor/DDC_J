@@ -77,4 +77,28 @@ public class util {
 
         return out;
     }
+
+    public static int hashNDPoint(int[] p, int binSize, int offset, int[] boundsOffset) {
+        int hash = 0;
+        for (int i = 0; i < p.length; i++) hash += (Math.round(p[i] / binSize) + offset) * boundsOffset[i];
+        return hash;
+    }
+
+    public static int hashNDPoint(double[] p, int binSize, int offset, int[] boundsOffset) {
+        int hash = 0;
+        for (int i = 0; i < p.length; i++) hash += (Math.round(p[i] / binSize) + offset) * boundsOffset[i];
+        return hash;
+    }
+
+    public static int[] unHashNDPoint(int hash, int binSize, int offset, int[] boundsOffset) {
+        int[] p = new int[boundsOffset.length];
+        for (int i = boundsOffset.length - 1; i >= 1; i--) {
+            int n = hash % boundsOffset[i];
+            p[i] = (binSize * (hash - n) / boundsOffset[i]) - offset;
+            hash = n;
+        }
+        p[0] = hash * binSize - offset;
+
+        return p;
+    }
 }
