@@ -1,13 +1,13 @@
-package com.andallfor.imagej;
+package com.andallfor.imagej.MCMC;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.andallfor.imagej.passes.second.secondaryPassCollector;
 
-public class MCMC {
+public class MCMCAlg {
     private secondaryPassCollector[] passes2;
-    public MCMC(secondaryPassCollector[] pass2) {
+    public MCMCAlg(secondaryPassCollector[] pass2) {
         passes2 = pass2;
     }
 

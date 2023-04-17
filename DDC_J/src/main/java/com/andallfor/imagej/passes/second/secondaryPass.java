@@ -1,5 +1,6 @@
 package com.andallfor.imagej.passes.second;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -17,10 +18,10 @@ public class secondaryPass {
     private int[] expectedSize;
     private MLCell LOC_FINAL, FRAME_INFO;
 
-    public static boolean[][] distMatrixValidator;
-    public static double[][][] binsFittingBlink;
-    public static double[][] deviation_in_prob;
-    public static double[] deviation_in_prob_mean, d_scale_store, distribution_for_blink;
+    public static primaryPassCollector[] primaryData;
+    public static blinkingDistribution blinkDist;
+
+    public static double[] deviation_in_prob_mean;
 
     public secondaryPassCollector[] processedData;
 
@@ -31,22 +32,16 @@ public class secondaryPass {
         this.res = res;
         this.maxLocDist = maxLocDist;
         this.expectedSize = LOC_FINAL.getDimensions();
-        
-        distMatrixValidator = new boolean[expectedSize[1]][primaryData[0].distMatrixValidator.length];
-        for (int i = 0; i < primaryData.length; i++) distMatrixValidator[i] = primaryData[i].distMatrixValidator;
 
-        deviation_in_prob = blinkDist.m_mat;
-        deviation_in_prob_mean = new double[deviation_in_prob.length];
-        for (int i = 0; i < deviation_in_prob.length; i++) {
-            for (int j = 0; j < deviation_in_prob[0].length; j++) deviation_in_prob_mean[i] += deviation_in_prob[i][j];
-            deviation_in_prob_mean[i] /= (double) deviation_in_prob[0].length;
+        secondaryPass.primaryData = primaryData;
+        secondaryPass.blinkDist = blinkDist;
+
+        // TODO: should prob move this into blinkDist
+        deviation_in_prob_mean = new double[blinkDist.m_mat.length];
+        for (int i = 0; i < blinkDist.m_mat.length; i++) {
+            for (int j = 0; j < blinkDist.m_mat[0].length; j++) deviation_in_prob_mean[i] += blinkDist.m_mat[i][j];
+            deviation_in_prob_mean[i] /= (double) blinkDist.m_mat[0].length;
         }
-
-        binsFittingBlink = new double[primaryData.length][N][primaryData[0].binsFittingBlink[0].length];
-        for (int i = 0; i < primaryData.length; i++) binsFittingBlink[i] = primaryData[i].binsFittingBlink;
-
-        d_scale_store = blinkDist.d_scale_store;
-        distribution_for_blink = blinkDist.distribution_for_blink;
     }
 
     public void run() {

@@ -4,8 +4,6 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.plugin.PlugIn;
 
-import java.util.Arrays;
-
 import java.io.IOException;
 
 import com.andallfor.imagej.passes.first.primaryPass;
