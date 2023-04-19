@@ -25,6 +25,8 @@ import com.jmatio.types.MLCell;
  * may be worth it to convert FRAME_INFO into an int array before hand
  * usage of true_loc to calc acc in simulated data
  * check usage of < vs <=, matlab is kinda funky -> loops are (inc, inc), but often comparisons (ex Z2(Z2 < A)) are exclusive
+ * maybe throw res/N/related things into a global class?
+ * somewhere theres some error- see secondaryPassCollector for more info (it is propagating and at one point theres only like 3 digits of acc, which is very very bad)
  */
 
 public class DDC_ implements PlugIn {

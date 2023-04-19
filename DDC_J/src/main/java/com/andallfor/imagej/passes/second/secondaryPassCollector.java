@@ -1,6 +1,7 @@
 package com.andallfor.imagej.passes.second;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.orangepalantir.leastsquares.fitters.NonLinearSolver;
 import org.orangepalantir.leastsquares.Fitter;
@@ -15,6 +16,12 @@ import com.andallfor.imagej.passes.first.primaryPassCollector;
 public class secondaryPassCollector implements imagePassCallback {
     private double max;
     private int res, N;
+
+    // expose relevant child vars
+    public int[] trajectories;
+    public boolean[] blinksMask;
+    public HashSet<Integer> framesWithMulti;
+    public double[][] probDist;
 
     public secondaryPassCollector(double max, int res, int N) {
         this.max = max;
@@ -55,7 +62,7 @@ public class secondaryPassCollector implements imagePassCallback {
         // TODO: this isnt perfectly accurate, only a few digits are the same. not sure why- probably something to do with trueDist?
         // TODO: maybe move this to a separate script- this isnt really "collecting" values, were doing a lot of processing. however, it is convenient as everything is auto threaded
         double[] localDScaleStore = new double[secondaryPass.blinkDist.d_scale_store.length];
-        double[][] probDist = new double[N][trueDist.length];
+        probDist = new double[N][trueDist.length];
         Fitter solver = new NonLinearSolver(linearSolver.func);
         double[] initialPara = new double[] {1};
 
@@ -105,17 +112,19 @@ public class secondaryPassCollector implements imagePassCallback {
 
         for (int i = 0; i < probDist.length; i++) {
             for (int j = 0; j < probDist[i].length; j++) {
-                probDist[i][j] += minProb;
+                probDist[i][j] = Math.log(probDist[i][j] + minProb);
             }
         }
+
+        trajectories = child.trajectories;
+        blinksMask = child.locBlink;
 
         // TODO: here the src adds a bit of noise to every point in order to account for people rounding their data.
         // imo an easier fix is just to tell the user to not round their data, and since i don't really feel like it ngl im
         // not implementing it (yet, amy in the future if this becomes a problem).
 
         if (child.imageNum == 0) {
-            MCMCThread mcmc = new MCMCThread(secondaryPass.primaryData[child.imageNum].framesWithMulti, child.frame, child.loc, child.nonBlink, child.trajectories, child.locBlink);
-
+            MCMCThread mcmc = new MCMCThread(child.frame, child.loc, res, secondaryPass.primaryData[child.imageNum], this);
             mcmc.calcOptimalFrameOrder();
         }
     }

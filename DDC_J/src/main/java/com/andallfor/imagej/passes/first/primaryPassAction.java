@@ -10,11 +10,12 @@ public class primaryPassAction extends imagePassAction {
     private int N, res;
     private double maxLocDist, maxFrameDist, maxFrameValue;
 
-    public int[] binsBlink, binsNoBlink, density;
+    public int[] binsBlink, binsNoBlink, density, dOverallHashOffset;
     public HashMap<Integer, Integer> dOverallCount;
     public int[][] binsFittingBlink;
     public byte[] distMatrixValidator;
     public ArrayList<Integer> framesWithMulti; // stores indexes of frame value, not the actual frame value
+    public int dOverallBoundsHalf;
 
     public primaryPassAction(double maxLocDist, double maxFrameDist, double maxFrameValue, int res, int N) {
         this.N = N;
@@ -33,8 +34,8 @@ public class primaryPassAction extends imagePassAction {
         density =           new int[frame.length];
 
         int dOverallBounds = (int) (Math.floor(maxLocDist / res) + 1) * 2;
-        int dOverallBoundsHalf = (int) Math.floor(maxLocDist / res) + 1;
-        int[] dOverallHashOffset = new int[loc[0].length];
+        dOverallBoundsHalf = (int) Math.floor(maxLocDist / res) + 1;
+        dOverallHashOffset = new int[loc[0].length];
         for (int i = 0; i < loc[0].length; i++) dOverallHashOffset[i] = (int) Math.pow(dOverallBounds, i);
 
         boolean[] _framesWithMultiBuffer = new boolean[(int) maxFrameValue]; // io from arrList is expensive, but we also dont want to iterate across the entire arr

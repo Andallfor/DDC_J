@@ -7,6 +7,12 @@ public class util {
         return Math.sqrt(interior);
     }
 
+    public static int dist(int[] a, int[] b) {
+        double interior = 0;
+        for (int i = 0; i < a.length; i++) interior += (a[i] - b[i]) * (a[i] - b[i]);
+        return (int) Math.round(Math.sqrt(interior));
+    }
+
     public static int[] makeBins(double size, double step) {
         int n = (int) (size / step) + 2;  // +1 to include end, +1 to end with inf
         int[] bins = new int[n];

@@ -15,6 +15,8 @@ public class primaryPassCollector implements imagePassCallback {
     public double[] binsBlink, binsNoBlink, density;
     public double[][] binsFittingBlink;
     public boolean[] distMatrixValidator;
+    public int[] dOverallHashOffset;
+    public int dOverallBoundsHalf;
     public HashSet<Integer> framesWithMulti;
     public HashMap<Integer, Integer> dOverallCount; // position hash, num values
 
@@ -71,7 +73,8 @@ public class primaryPassCollector implements imagePassCallback {
             else child.dOverallCount.forEach((k, v) -> dOverallCount.merge(k, v, (v1, v2) -> v1 + v2));
         }
 
-        System.out.println(dOverallCount.keySet().size());
+        dOverallHashOffset = ((primaryPassAction) threads[0]).dOverallHashOffset;
+        dOverallBoundsHalf = ((primaryPassAction) threads[0]).dOverallBoundsHalf;
 
         // assemble collected data into desired formats
 
