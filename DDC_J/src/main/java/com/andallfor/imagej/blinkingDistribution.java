@@ -75,7 +75,6 @@ public class blinkingDistribution {
 		double[] initialPara = new double[] {1};
 		double[][] _d_scale_store = new double[numImages][N];
 		for (int i = 0; i < numImages; i++) {
-			//determineBlinkingDistParent thread = threads[i];
 			primaryPassCollector thread = threads[i];
 			double[][] xs = new double[thread.binsNoBlink.length][2];
 			for (int j = 0; j < xs.length; j++) xs[j] = new double[] {thread.binsNoBlink[j], _distribution_for_blink.getAsDouble(0, j)};

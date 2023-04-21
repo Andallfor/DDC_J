@@ -1,30 +1,45 @@
 package com.andallfor.imagej.MCMC;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.eclipse.collections.api.set.primitive.MutableIntSet;
+import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
+
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.passes.first.primaryPassCollector;
 import com.andallfor.imagej.passes.second.secondaryPassCollector;
+
+import com.jmatio.io.MatFileReader;
+import com.jmatio.types.MLArray;
+import com.jmatio.types.MLCell;
+import com.jmatio.types.MLDouble;
 
 public class MCMCThread implements Runnable {
     private int[] framesWithMulti;
     private double[] frame;
     private double[][] loc;
 
-    private int res;
+    // this is not efficient, but as this is just a proof of concept it is fine
+    // replace this with a true caching system later
+    private MutableIntSet truthIndexes; // TODO: try implementing without set (self impl) (for speed)
+    private boolean[] repeatMask; // false = repeat true = truth
+
+    private int res, N, probDistCols, probDistRows;
 
     private primaryPassCollector p1;
     private secondaryPassCollector p2;
 
-    public MCMCThread(double[] frame, double[][] loc, int res, primaryPassCollector p1, secondaryPassCollector p2) {
+    public MCMCThread(double[] frame, double[][] loc, int res, int N, primaryPassCollector p1, secondaryPassCollector p2) {
         this.p1 = p1;
         this.p2 = p2;
         this.frame = frame;
         this.loc = loc;
         this.res = res;
+        this.N = N;
 
         framesWithMulti = new int[p1.framesWithMulti.size()]; // copy values to arr bc java bad or something
         int c = 0;
@@ -32,6 +47,164 @@ public class MCMCThread implements Runnable {
             framesWithMulti[c] = i;
             c++;
         }
+
+        probDistCols = p2.probDist[0].length;
+        probDistRows = p2.probDist.length;
+    }
+
+    private double prepare() {
+        truthIndexes = new IntHashSet((int) (p2.numTruth * 1.25));
+        repeatMask = new boolean[frame.length];
+        // pick a random index, this will be our starting point
+        for (int i = 0; i < 600; i++) {
+            int r = (int) (Math.random() * frame.length);
+
+            if (repeatMask[r]) continue;
+
+            //System.out.println(getTrueScore());
+            //System.out.println("s: " + checkAddT(r));
+
+            truthIndexes.add(r);
+            //System.out.println(result);
+            repeatMask[r] = true;
+            //System.out.println(getTrueScore());
+            //System.out.println("-------");
+        }
+
+        int ra = 0;
+        while (true) {
+            ra = (int) (Math.random() * frame.length);
+            if (!repeatMask[ra]) break;
+        }
+
+        System.out.println(getTrueScore());
+        System.out.println(checkAddT(ra));
+        truthIndexes.add(ra);
+        repeatMask[ra] = true;
+        System.out.println(getTrueScore());
+        
+
+
+        return 0;
+    }
+
+    private double checkAddT(int index) {
+        int[] indices = truthIndexes.toArray(); // TODO: dont do this
+
+        double s = 0;
+
+        for (int i = 0; i < indices.length; i++) {
+            int dFra = (int) Math.abs(frame[indices[i]] - frame[index]);
+            if (dFra >= N || dFra == 0) continue;
+
+            int dLoc = (int) (util.dist(loc[indices[i]], loc[index]) / res);
+            if (dLoc >= probDistCols) dLoc = probDistCols - 1;
+
+            //System.out.println(p2.probDist[dFra - 1][dLoc]);
+            //System.out.println(p2.probDist[probDistRows - 1][dLoc]);
+
+            s -= p2.probDist[dFra - 1][dLoc]; // P_r1
+            s += p2.probDist[probDistRows - 1][dLoc]; // P_t
+        }
+
+        return s;
+    }
+
+    private double getTrueScore() { // checked, is acc (up to ~5-6 digits)
+        int[] indices = truthIndexes.toArray();
+
+        double P_t = 0;
+        double P_r1 = 0;
+
+        // T -> T
+        for (int i = 0; i < indices.length; i++) {
+            for (int j = i + 1; j < indices.length; j++) {
+                int dFra = (int) Math.abs(frame[indices[i]] - frame[indices[j]]);
+                if (dFra >= N || dFra == 0) continue;
+
+                int dLoc = (int) (util.dist(loc[indices[i]], loc[indices[j]]) / res);
+                if (dLoc >= probDistCols) dLoc = probDistCols - 1;
+
+                P_t += p2.probDist[probDistRows - 1][dLoc];
+            }
+        }
+
+        // R -> R
+        for (int i = 0 ; i < frame.length; i++) {
+            if (repeatMask[i]) continue;
+
+            for (int j = i + 1; j < frame.length; j++) {
+                if (repeatMask[j]) continue;
+
+                int dFra = (int) Math.abs(frame[i] - frame[j]);
+                if (dFra >= N || dFra == 0) continue;
+
+                int dLoc = (int) (util.dist(loc[i], loc[j]) / res);
+                if (dLoc >= probDistCols) dLoc = probDistCols - 1;
+
+                P_r1 += p2.probDist[dFra - 1][dLoc];
+            }
+        }
+
+        // R -> T
+        for (int i = 0 ; i < frame.length; i++) {
+            if (repeatMask[i]) continue;
+
+            for (int j = 0; j < indices.length; j++) {
+                int dFra = (int) Math.abs(frame[i] - frame[indices[j]]);
+                if (dFra >= N || dFra == 0) continue;
+
+                int dLoc = (int) (util.dist(loc[i], loc[indices[j]]) / res);
+                if (dLoc >= probDistCols) dLoc = probDistCols - 1;
+
+                P_r1 += p2.probDist[dFra - 1][dLoc];
+            }
+        }
+
+        return P_t + P_r1;
+    }
+
+    public void test() { // -1.181903.809881098e+06 -> -1181903 // -1187740.6708987467
+        double current = prepare();
+        /*
+
+        int maxSteps = frame.length - 1;
+        int step = 0;
+        int l = frame.length;
+
+        System.out.println(current);
+
+        while (step < maxSteps) {
+            double maxScore = 0;
+            int index = 0;
+            for (int i = 0; i < l; i++) {
+                if (repeatMask[i]) continue;
+
+                double s = getChangeAdd(i);
+                if (maxScore < s) {
+                    maxScore = s;
+                    index = i;
+                }
+            }
+
+            if (maxScore == 0) break;
+
+            truthIndexes.add(index);
+            repeatMask[index] = true;
+            current += maxScore;
+
+            step++;
+
+            //System.out.println(maxScore);
+        }
+
+        System.out.println("-----");
+
+        System.out.println(current);
+        System.out.println(truthIndexes.size());
+        //System.out.println(truthIndexes.toString());
+        System.out.println(getTrueScore());
+        */
     }
 
     public void run() {}
