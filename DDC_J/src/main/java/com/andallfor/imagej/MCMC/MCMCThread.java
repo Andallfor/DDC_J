@@ -6,11 +6,22 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import org.eclipse.collections.api.list.primitive.MutableDoubleList;
+import org.eclipse.collections.api.list.primitive.MutableIntList;
+import org.eclipse.collections.api.map.primitive.MutableDoubleDoubleMap;
+import org.eclipse.collections.api.map.primitive.MutableIntDoubleMap;
+import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
+import org.eclipse.collections.api.stack.primitive.MutableIntStack;
+import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
+import org.eclipse.collections.impl.map.mutable.primitive.DoubleDoubleHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntDoubleHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.passes.first.primaryPassCollector;
+import com.andallfor.imagej.passes.second.secondaryPass;
 import com.andallfor.imagej.passes.second.secondaryPassCollector;
 
 import com.jmatio.io.MatFileReader;
@@ -154,8 +165,11 @@ public class MCMCThread implements Runnable {
         return P_t + P_r1;
     }
 
-    public void test() {
+    private MutableIntList getDesired() {
+        long s1 = System.currentTimeMillis();
         double current = prepare();
+        System.out.println("\nPreparation: " + (System.currentTimeMillis() - s1));
+        s1 = System.currentTimeMillis();
 
         int maxSteps = 1000;
         int step = 0;
@@ -188,12 +202,98 @@ public class MCMCThread implements Runnable {
 
             step++;
         }
+        System.out.println("Greedy Search: " + (System.currentTimeMillis() - s1));
+        s1 = System.currentTimeMillis();
 
-        System.out.println("Predicted score: " + current);
-        System.out.println("True score: " + getTrueScore());
-        System.out.println("Num locs: " + truthIndexes.size());
-        System.out.println("Steps: " + step);
-        System.out.println("Indices: " + truthIndexes);
+        MutableIntIntMap desired = new IntIntHashMap(truthIndexes.size());
+        int[] map = truthIndexes.toArray();
+        for (int i = 0; i < map.length; i++) desired.put(map[i], (int) (checkRemoveT(map[i], map) * 10_000));
+        MutableIntList d = desired.keySet().toSortedList((k1, k2) -> { // maybe use stack?
+            if (desired.get(k1) == desired.get(k2)) return 0;
+            if (desired.get(k1) > desired.get(k2)) return 1;
+            return -1;
+        });
+
+        System.out.println("Sorting: " + (System.currentTimeMillis() - s1));
+
+        return d;
+    }
+
+    public void test() {
+        long s1 = System.currentTimeMillis();
+
+        MutableIntList desired = getDesired();
+        MutableIntList filtered = new IntArrayList(desired.size());
+
+        boolean[] trajectoryMask = new boolean[frame.length];
+        int ddtClamp = secondaryPass.blinkDist.m_mat[0].length;
+        while (desired.size() > 0) {
+            // goal is to maximize size of trajectory
+            // find the point that would increase the prob of each trajectory the most
+            // termination conditions: no new variation is valid (p<0.5), all points have been assigned to a trajectory
+            // current trajectory is not allowed to join any other trajectories
+            // need to test allowing trajectory to take other locs (if score <, or no restrictions)
+
+            int currentIndex = desired.getLast();
+            desired.removeAtIndex(desired.size() - 1); // just use stack
+
+            MutableIntList currentTrajectory = new IntArrayList(15);
+            MutableIntSet currentTrajectoryFrames = new IntHashSet(15);
+            currentTrajectory.add(currentIndex);
+            currentTrajectoryFrames.add((int) frame[currentIndex]);
+
+            double rangeMin = frame[currentIndex], rangeMax = frame[currentIndex];
+
+            trajectoryMask[currentIndex] = true;
+            while (true) {
+                int initialSize = currentTrajectory.size();
+                for (int i = 0; i < frame.length; i++) {
+                    if (trajectoryMask[i]) continue;
+    
+                    double fDist = Math.max(Math.abs(rangeMin - frame[i]), Math.abs(rangeMax - frame[i]));
+    
+                    if (fDist > N) continue;
+                    if (currentTrajectoryFrames.contains((int) frame[i])) continue;
+
+                    double currentScore = 0;
+                    for (int j = 0; j < currentTrajectory.size(); j++) {
+                        int r = (int) Math.abs(frame[currentTrajectory.get(j)] - frame[i]);
+                        int c = (int) (util.dist(loc[currentTrajectory.get(j)], loc[i]) / res) + 1;
+                        if (c > ddtClamp) c = ddtClamp;
+
+                        currentScore += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
+                    }
+
+                    if (currentScore / (currentTrajectory.size() + 1) <= 0.5) continue;
+                    trajectoryMask[i] = true;
+                    currentTrajectory.add(i);
+                    currentTrajectoryFrames.add((int) frame[i]);
+
+                    if (desired.contains(i)) desired.remove(i);
+
+                    if (frame[i] < rangeMin) rangeMin = frame[i];
+                    if (frame[i] > rangeMax) rangeMax = frame[i];
+
+                    break;
+                }
+
+                if (currentTrajectory.size() == initialSize) break;
+            }
+
+            if (currentTrajectory.size() == 1) {
+                trajectoryMask[currentIndex] = false;
+            } else {
+                filtered.add(currentIndex);
+                System.out.println(currentTrajectory);
+            }
+        }
+
+        System.out.println(filtered);
+        System.out.println(filtered.size());
+        System.out.println(desired.size());
+
+
+        System.out.println("Search Total Time: " + (System.currentTimeMillis() - s1) + "\n");
     }
 
     public void run() {}

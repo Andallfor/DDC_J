@@ -6,10 +6,12 @@ import ij.plugin.PlugIn;
 
 import java.io.IOException;
 
+import com.andallfor.imagej.MCMC.MCMCThread;
 import com.andallfor.imagej.passes.first.primaryPass;
 import com.andallfor.imagej.passes.second.secondaryPass;
 import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLCell;
+import com.jmatio.types.MLDouble;
 
 /*
  * Main ddc alg
@@ -68,6 +70,12 @@ public class DDC_ implements PlugIn {
 		System.out.println(new String(new char[fancyString.length()]).replace('\0', '='));
 		System.out.println(fancyString);
 		System.out.println(new String(new char[fancyString.length()]).replace('\0', '='));
+
+		MCMCThread mcmc = new MCMCThread(
+			((MLDouble) FRAME_INFO.get(0)).getArray()[0], 
+			(((MLDouble) LOC_FINAL.get(0))).getArray(), res, N, firstPass.processedData[0], secondPass.processedData[0]);
+		
+		mcmc.test();
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }
