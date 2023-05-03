@@ -14,6 +14,7 @@ public class secondaryPassAction extends imagePassAction {
     public int nonBlink = 0, imageNum = 0;
     public double maxLocDistControl = 0;
     public boolean[] locBlink;
+    public HashMap<Integer, int[]> trajectoryIndexMap;
 
     public secondaryPassAction(double maxLocDist, int res, int N, int imageNum) {
         this.N = N;
@@ -28,8 +29,8 @@ public class secondaryPassAction extends imagePassAction {
         locBlink = new boolean[frame.length];
         boolean[] locLinked = new boolean[frame.length];
         double[][] framerCache = new double[frame.length][2]; // [trajectory hash][min, max]
-        int trajectoryHash = 1; // offset by -1, 0 is used to signify that there is no trajectory
-        HashMap<Integer, int[]> trajectoryIndexMap = new HashMap<Integer, int[]>(); // each key is a trajectoryHash. each value points to an index inside trajectories
+        int trajectoryHash = 1; // offset by 1, 0 is used to signify that there is no trajectory
+        trajectoryIndexMap = new HashMap<Integer, int[]>(); // each key is a trajectoryHash. each value points to an index inside trajectories
 
         // cache
         double[] distMatrix = new double[4];
@@ -63,7 +64,7 @@ public class secondaryPassAction extends imagePassAction {
                     }
 
                     // start cannot have started another trajectory and last cannot be part of another trajectory
-                    if (!locBlink[last] && !locLinked[first]) {
+                    if (!locBlink[last] && !locLinked[first]/*&& !locLinked[last]*/) {
                         // trajectories can be both one element (not yet claimed) or an array (already a trajectory) to account for both we put the one element into an array
                         // in cases where trajectory already exists, we do not need to account for the current value because by definition they will have already been included in the already existing trajectory
                         t1 = writeValues(first, framerCache, distMatrix, 0, trajectories, _t1, trajectoryIndexMap);
@@ -88,9 +89,7 @@ public class secondaryPassAction extends imagePassAction {
                                 int c = (int) (util.dist(loc[t1[ii]], loc[t2[jj]]) / res) + 1;
                                 if (c > ddtClamp) c = ddtClamp;
 
-                                double[] arr = secondaryPass.blinkDist.m_mat[r - 1];
-
-                                avg += arr[c - 1];
+                                avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
                             }
                         }
 

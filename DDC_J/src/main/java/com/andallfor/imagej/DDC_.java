@@ -75,7 +75,7 @@ public class DDC_ implements PlugIn {
 			((MLDouble) FRAME_INFO.get(0)).getArray()[0], 
 			(((MLDouble) LOC_FINAL.get(0))).getArray(), res, N, firstPass.processedData[0], secondPass.processedData[0]);
 		
-		mcmc.test();
+		mcmc.MCMC();
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }

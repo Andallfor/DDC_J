@@ -2,6 +2,7 @@ package com.andallfor.imagej.passes.second;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import org.orangepalantir.leastsquares.fitters.NonLinearSolver;
@@ -24,6 +25,7 @@ public class secondaryPassCollector implements imagePassCallback {
     public HashSet<Integer> framesWithMulti;
     public double[][] probDist;
     public int numTruth;
+    public HashMap<Integer, int[]> trajectoryIndexMap;
 
     public secondaryPassCollector(double max, int res, int N) {
         this.max = max;
@@ -122,6 +124,7 @@ public class secondaryPassCollector implements imagePassCallback {
         trajectories = child.trajectories;
         blinksMask = child.locBlink;
         numTruth = child.nonBlink;
+        trajectoryIndexMap = child.trajectoryIndexMap;
 
         // TODO: here the src adds a bit of noise to every point in order to account for people rounding their data.
         // imo an easier fix is just to tell the user to not round their data, and since i don't really feel like it ngl im

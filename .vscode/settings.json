@@ -8,6 +8,7 @@
         "lsne",
         "MCMC",
         "ojalgo",
+        "randn",
         "scipy",
         "thatll",
         "vect",
