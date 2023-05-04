@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 
 import org.apache.commons.statistics.distribution.NormalDistribution;
 import org.eclipse.collections.api.list.primitive.MutableDoubleList;
@@ -115,7 +116,7 @@ public class MCMCThread implements Runnable {
         return s;
     }
 
-    private double getTrueScore(int[] indices) { // checked, is acc (up to ~5-6 digits)
+    private double getTrueScore(int[] indices) { 
         double P_t = 0;
         double P_r1 = 0;
 
@@ -224,16 +225,16 @@ public class MCMCThread implements Runnable {
         for (Integer key : _trajectories.keySet()) {
             ArrayList<Integer> trajectory = _trajectories.get(key);
 
-            ArrayList<Integer> existing = new ArrayList<Integer>();
+            ArrayList<Double> existing = new ArrayList<Double>();
 
             IntArrayList copy = new IntArrayList(trajectory.size());
 
             for (int i = 0; i < trajectory.size(); i++) {
-                if (existing.contains(trajectory.get(i))) System.out.println("Warning: collision detected in trajectories");
+                if (existing.contains(frame[trajectory.get(i)])) System.out.println("Warning: frame collision detected in trajectories");
                 // TODO: add in check for detecting if truth is smallest frame
 
                 copy.add(trajectory.get(i));
-                existing.add(i);
+                existing.add(frame[trajectory.get(i)]);
             }
 
             trajectories.put(key, copy);
@@ -260,7 +261,7 @@ public class MCMCThread implements Runnable {
             scores.clear();
             for (int i = 0; i < frame.length; i++) {
                 double s = 0;
-                if (p2.blinksMask[i]) s = checkAddT(i, truths);
+                if (!repeatMask[i]) s = checkAddT(i, truths);
                 else s = checkRemoveT(i, truths);
 
                 if (s > minMax) {
@@ -290,45 +291,95 @@ public class MCMCThread implements Runnable {
 
             // figure out the action needed
             // the goal is to make the move that changes the least
-            IntSet[] truthChanges = new IntSet[scores.size()];
-            int ind = -1;
+            
             for (IntDoublePair entry : scores.keyValuesView()) {
-                // TODO: write desc for whats going on
-                if (!p2.blinksMask[entry.getOne()]) { // remove point
-                    double removalFromSrcCost = 1; // maximize cost [0, 1]
-                    // check what would happen to the src trajectory
-                    int stKey = p2.trajectories[entry.getOne()];
-                    IntArrayList srcTrajectory = trajectories.get(stKey);
-                    if (srcTrajectory.size() != 1) {
-                        int[] arr = srcTrajectory.toArray();
+                /*
+                 * Regardless of whether our end goal is to include or exclude a point, we will always have to remove a point from a trajectory. Removing a point is in the name. When adding a 
+                 *   point however, because every "action" will always change a truth, adding a point will add a truth, and since each trajectory can only have one truth, we will need to
+                 *   create a new trajectory to hold the added truth. Currently, we do not add anything to this new trajectory except for the truth, as the goal is to minimize change. TODO
+                 */
 
-                        double avg = 0;
-                        for (int i = 0; i < arr.length; i++) {
-                            if (arr[i] == entry.getOne()) continue;
+                // TODO: dont do this!
+                MutableIntSet truthsCopy = new IntHashSet(truthIndexes);
+                HashMap<Integer, IntArrayList> trajectoriesCopy = new HashMap<Integer, IntArrayList>(trajectories.size());
+                for (Entry<Integer, IntArrayList> e : trajectories.entrySet()) trajectoriesCopy.put(e.getKey(), new IntArrayList(e.getValue().toArray()));
 
-                            int r = (int) Math.abs(frame[arr[i]] - frame[entry.getOne()]);
-                            int c = (int) (util.dist(loc[arr[i]], loc[entry.getOne()]) / res) + 1;
-                            if (c > ddtClamp) c = ddtClamp;
+                double removalScore = 1; // maximize cost [0, 1]
+                int stKey = p2.trajectories[entry.getOne()];
+                IntArrayList srcTrajectory = trajectories.get(stKey);
+                // check what would happen to the src trajectory
+                if (srcTrajectory.size() != 1) {
+                    int[] arr = srcTrajectory.toArray();
 
-                            avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
+                    // get how "strongly" attached the current point is to its trajectory
+                    double avg = 0;
+                    for (int i = 0; i < arr.length; i++) {
+                        if (arr[i] == entry.getOne()) continue;
+
+                        int r = (int) Math.abs(frame[arr[i]] - frame[entry.getOne()]);
+                        int c = (int) (util.dist(loc[arr[i]], loc[entry.getOne()]) / res) + 1;
+                        if (c > ddtClamp) c = ddtClamp;
+
+                        avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
+                    }
+
+                    avg /= arr.length - 1.0;
+
+                    // figure out how much we would need to change kappa by to get it to disconnect
+                    if (avg > 0.5) { // sometimes avg will be < 0.5 auto, this is because as we add more points we dont check each and every point again
+                        // avg / (1 + kappa) = 0.5, solve for kappa
+                        double k = 2 * avg - 1;
+                        // in src, constant1 and 2 both are updated, so tech two randn are being called, so rather than *10, *5
+                        removalScore = 1 - distribution.cumulativeProbability(5 * k);
+                    }
+                } // if == 1, then cost is 0
+
+                /*
+                 * if applicable, figure out what would happen to the source trajectory. This step can be ignored if we are adding a truth because the source trajectory will always have at
+                 *   least two elements, and the element that is changed is a repeat, not a truth. This is because we only call "add a truth" when we see a repeat, and repeats cannot be by
+                 *   themselves, they have to be contained within a trajectory, and since each trajectory has to contain a truth, the source trajectory will always have at least 2 elements.
+                 *   And since we take the lazy way (just creating a new trajectory for the truth), and we know that the source trajectory will not have any new truths, we can ignore this step.
+                 * We only care about this step in order to determine what, if any, new truths will be added as a result of our proposed action. This is estimated by iterating through
+                 *   trajectories and getting the trajectory that is most likely to accept us, if none are above the 0.5 threshold, just create our own trajectory. 
+                 *   TODO maybe include the average score of each trajectory or something?
+                 */
+                
+                double maxProb = 0;
+                Integer ttKey = 0;
+                for (Entry<Integer, IntArrayList> t : trajectoriesCopy.entrySet()) {
+                    if (t.getKey() == stKey) continue;
+
+                    double avg = 0;
+                    IntArrayList arr = t.getValue();
+                    for (int i = 0; i < arr.size(); i++) {
+                        if (frame[arr.get(i)] == frame[entry.getOne()]) { // all frames must be unique within a trajectory
+                            avg = 0;
+                            break;
                         }
 
-                        avg /= arr.length - 1.0;
+                        int r = (int) Math.abs(frame[arr.get(i)] - frame[entry.getOne()]);
+                        int c = (int) (util.dist(loc[arr.get(i)], loc[entry.getOne()]) / res) + 1;
+                        if (c > ddtClamp) c = ddtClamp;
 
-                        if (avg > 0.5) { // sometimes avg will be < 0.5 auto, this is because as we add more points we dont check each and every point again
-                            // avg / (1 + kappa) = 0.5, solve for kappa
-                            double k = 2 * avg - 1;
-                            // in src, constant1 and 2 both are updated, so tech two randn are being called, so rather than *10, *5
-                            removalFromSrcCost = 1 - distribution.cumulativeProbability(5 * k);
-                        }
-                    } // if == 1, then cost is 0
+                        avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
+                    }
 
-                    // we dont need to figure out what we do with the point rn, since the cost is 0 regardless
+                    avg /= (double) arr.size();
+
+                    if (avg > maxProb) {
+                        maxProb = avg;
+                        ttKey = t.getKey();
+                    }
+                }
+
+                if (maxProb > 0.5) { // add to trajectory
+
+                } else { // create new trajectory
+
                 }
             }
 
-            // perform the action
-            truthChanges[ind].forEach((i) -> {invertPoint(i);});
+            System.out.println(secondaryPass.blinkDist.m_mat[-1]);
 
             iterations++;
 
@@ -339,10 +390,10 @@ public class MCMCThread implements Runnable {
     }
 
     private void invertPoint(int ind) {
-        if (p2.blinksMask[ind]) truthIndexes.add(ind);
+        if (!repeatMask[ind]) truthIndexes.add(ind);
         else truthIndexes.remove(ind);
 
-        p2.blinksMask[ind] = !p2.blinksMask[ind];
+        repeatMask[ind] = !repeatMask[ind];
     }
 
     public void run() {}
