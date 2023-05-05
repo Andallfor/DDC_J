@@ -1,38 +1,20 @@
 package com.andallfor.imagej.MCMC;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map.Entry;
 
 import org.apache.commons.statistics.distribution.NormalDistribution;
-import org.eclipse.collections.api.list.primitive.MutableDoubleList;
-import org.eclipse.collections.api.list.primitive.MutableIntList;
-import org.eclipse.collections.api.map.primitive.MutableDoubleDoubleMap;
-import org.eclipse.collections.api.map.primitive.MutableIntDoubleMap;
-import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
-import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
-import org.eclipse.collections.api.stack.primitive.MutableIntStack;
 import org.eclipse.collections.api.tuple.primitive.IntDoublePair;
 import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
-import org.eclipse.collections.impl.map.mutable.primitive.DoubleDoubleHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.IntDoubleHashMap;
-import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 import com.andallfor.imagej.util;
 import com.andallfor.imagej.passes.first.primaryPassCollector;
 import com.andallfor.imagej.passes.second.secondaryPass;
 import com.andallfor.imagej.passes.second.secondaryPassCollector;
-
-import com.jmatio.io.MatFileReader;
-import com.jmatio.io.MatFileWriter;
-import com.jmatio.types.MLArray;
-import com.jmatio.types.MLCell;
-import com.jmatio.types.MLDouble;
 
 public class MCMCThread implements Runnable {
     private int[] framesWithMulti;
@@ -79,7 +61,7 @@ public class MCMCThread implements Runnable {
             if (repeatMask[i]) truthIndexes.add(i);
         }
 
-        return getTrueScore(truthIndexes.toArray());
+        return getTrueScore(truthIndexes.toArray(), repeatMask);
     }
 
     private double checkAddT(int index, int[] indices) {
@@ -116,7 +98,8 @@ public class MCMCThread implements Runnable {
         return s;
     }
 
-    private double getTrueScore(int[] indices) { 
+    // TODO: have this accept in repeatMask too
+    private double getTrueScore(int[] indices, boolean[] mask) { 
         double P_t = 0;
         double P_r1 = 0;
 
@@ -135,10 +118,10 @@ public class MCMCThread implements Runnable {
 
         // R -> R
         for (int i = 0 ; i < frame.length; i++) {
-            if (repeatMask[i]) continue;
+            if (mask[i]) continue;
 
             for (int j = i + 1; j < frame.length; j++) {
-                if (repeatMask[j]) continue;
+                if (mask[j]) continue;
 
                 int dFra = (int) Math.abs(frame[i] - frame[j]);
                 if (dFra >= N || dFra == 0) continue;
@@ -152,7 +135,7 @@ public class MCMCThread implements Runnable {
 
         // R -> T
         for (int i = 0 ; i < frame.length; i++) {
-            if (repeatMask[i]) continue;
+            if (mask[i]) continue;
 
             for (int j = 0; j < indices.length; j++) {
                 int dFra = (int) Math.abs(frame[i] - frame[indices[j]]);
@@ -224,7 +207,6 @@ public class MCMCThread implements Runnable {
         trajectories = new HashMap<Integer, IntArrayList>(p2.numTruth);
         for (Integer key : _trajectories.keySet()) {
             ArrayList<Integer> trajectory = _trajectories.get(key);
-
             ArrayList<Double> existing = new ArrayList<Double>();
 
             IntArrayList copy = new IntArrayList(trajectory.size());
@@ -303,13 +285,22 @@ public class MCMCThread implements Runnable {
                 MutableIntSet truthsCopy = new IntHashSet(truthIndexes);
                 HashMap<Integer, IntArrayList> trajectoriesCopy = new HashMap<Integer, IntArrayList>(trajectories.size());
                 for (Entry<Integer, IntArrayList> e : trajectories.entrySet()) trajectoriesCopy.put(e.getKey(), new IntArrayList(e.getValue().toArray()));
+                boolean[] repeatMaskCopy = new boolean[repeatMask.length];
+                System.arraycopy(repeatMask, 0, repeatMaskCopy, 0, repeatMask.length);
 
                 double removalScore = 1; // maximize cost [0, 1]
                 int stKey = p2.trajectories[entry.getOne()];
                 IntArrayList srcTrajectory = trajectories.get(stKey);
+
+                //===============================================================//
+                // SOURCE TRAJECTORY                                             //
+                //===============================================================//
+
                 // check what would happen to the src trajectory
                 if (srcTrajectory.size() != 1) {
                     int[] arr = srcTrajectory.toArray();
+                    double minFrame = 1000000;
+                    int minFrameIndex = -1; // TODO: need to update src trajectory (set new truth if needed)
 
                     // get how "strongly" attached the current point is to its trajectory
                     double avg = 0;
@@ -321,6 +312,11 @@ public class MCMCThread implements Runnable {
                         if (c > ddtClamp) c = ddtClamp;
 
                         avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
+
+                        if (frame[arr[i]] < minFrame) {
+                            minFrame = frame[arr[i]];
+                            minFrameIndex = arr[i];
+                        }
                     }
 
                     avg /= arr.length - 1.0;
@@ -332,51 +328,105 @@ public class MCMCThread implements Runnable {
                         // in src, constant1 and 2 both are updated, so tech two randn are being called, so rather than *10, *5
                         removalScore = 1 - distribution.cumulativeProbability(5 * k);
                     }
-                } // if == 1, then cost is 0
+
+                    // we are removing a point. since we always modify truths, this means that we are removing the truth from the src trajectory and so need to update the trajectory's truth
+                    if (repeatMaskCopy[entry.getOne()]) {
+                        // set new trajectory truth
+                        truthsCopy.add(minFrameIndex);
+                        repeatMaskCopy[minFrameIndex] = true;
+
+                        // dont change what we do with the target point, we modify that below
+                    }
+                } else {// if == 1, then cost is 0
+                    // remove source trajectory
+                    trajectoriesCopy.remove(stKey);
+                }
+
+                //===============================================================//
+                // TARGET TRAJECTORY                                             //
+                //===============================================================//
 
                 /*
-                 * if applicable, figure out what would happen to the source trajectory. This step can be ignored if we are adding a truth because the source trajectory will always have at
-                 *   least two elements, and the element that is changed is a repeat, not a truth. This is because we only call "add a truth" when we see a repeat, and repeats cannot be by
-                 *   themselves, they have to be contained within a trajectory, and since each trajectory has to contain a truth, the source trajectory will always have at least 2 elements.
-                 *   And since we take the lazy way (just creating a new trajectory for the truth), and we know that the source trajectory will not have any new truths, we can ignore this step.
-                 * We only care about this step in order to determine what, if any, new truths will be added as a result of our proposed action. This is estimated by iterating through
-                 *   trajectories and getting the trajectory that is most likely to accept us, if none are above the 0.5 threshold, just create our own trajectory. 
-                 *   TODO maybe include the average score of each trajectory or something?
-                 */
+                * if applicable, figure out what would happen to the source trajectory. This step can be ignored if we are adding a truth because the source trajectory will always have at
+                *   least two elements, and the element that is changed is a repeat, not a truth. This is because we only call "add a truth" when we see a repeat, and repeats cannot be by
+                *   themselves, they have to be contained within a trajectory, and since each trajectory has to contain a truth, the source trajectory will always have at least 2 elements.
+                *   And since we take the lazy way (just creating a new trajectory for the truth), and we know that the source trajectory will not have any new truths, we can ignore this step.
+                * We only care about this step in order to determine what, if any, new truths will be added as a result of our proposed action. This is estimated by iterating through
+                *   trajectories and getting the trajectory that is most likely to accept us, if none are above the 0.5 threshold, just create our own trajectory. 
+                *   TODO maybe include the average score of each trajectory or something?
+                */
                 
-                double maxProb = 0;
-                Integer ttKey = 0;
-                for (Entry<Integer, IntArrayList> t : trajectoriesCopy.entrySet()) {
-                    if (t.getKey() == stKey) continue;
+                // if we are removing a truth
+                if (repeatMaskCopy[entry.getOne()]) {
+                    // get trajectory that will accept new point
+                    double maxProb = 0;
+                    Integer ttKey = 0;
+                    for (Entry<Integer, IntArrayList> t : trajectoriesCopy.entrySet()) {
+                        if (t.getKey() == stKey) continue;
 
-                    double avg = 0;
-                    IntArrayList arr = t.getValue();
-                    for (int i = 0; i < arr.size(); i++) {
-                        if (frame[arr.get(i)] == frame[entry.getOne()]) { // all frames must be unique within a trajectory
-                            avg = 0;
-                            break;
+                        double avg = 0;
+                        IntArrayList arr = t.getValue();
+                        for (int i = 0; i < arr.size(); i++) {
+                            if (frame[arr.get(i)] == frame[entry.getOne()]) { // all frames must be unique within a trajectory
+                                avg = 0;
+                                break;
+                            }
+
+                            int r = (int) Math.abs(frame[arr.get(i)] - frame[entry.getOne()]);
+
+                            if (r >= N) continue;
+
+                            int c = (int) (util.dist(loc[arr.get(i)], loc[entry.getOne()]) / res) + 1;
+                            if (c > ddtClamp) c = ddtClamp;
+
+                            avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
                         }
 
-                        int r = (int) Math.abs(frame[arr.get(i)] - frame[entry.getOne()]);
-                        int c = (int) (util.dist(loc[arr.get(i)], loc[entry.getOne()]) / res) + 1;
-                        if (c > ddtClamp) c = ddtClamp;
+                        avg /= (double) arr.size();
 
-                        avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
+                        if (avg > maxProb) {
+                            maxProb = avg;
+                            ttKey = t.getKey();
+                        }
                     }
 
-                    avg /= (double) arr.size();
+                    if (maxProb > 0.5) { // add to trajectory
+                        IntArrayList arr = trajectoriesCopy.get(ttKey);
 
-                    if (avg > maxProb) {
-                        maxProb = avg;
-                        ttKey = t.getKey();
+                        // check if the new point would become the new truth or not
+                        double minFrame = 10000000;
+                        int index = -1;
+                        for (int i = 0; i < arr.size(); i++) {
+                            if (frame[arr.get(i)] < minFrame) {
+                                minFrame = frame[arr.get(i)];
+                                index = i;
+                            }
+                        }
+
+                        // check if we need to update that trajectories truth
+                        if (frame[entry.getOne()] < minFrame) {
+                            // remove the previous truth
+                            truthsCopy.remove(index);
+                            repeatMaskCopy[index] = false;
+
+                            // set the new point as the new truth, however dont need to actually do anything since the purpose of this segment is to remove the truth, but we want to keep it
+                            // so just dont change anything here
+                        } else { // the truth of the trajectory doesnt change
+                            // but still need to remove entry.getOne() (the entire purpose of this code)
+                            truthsCopy.remove(entry.getOne());
+                            repeatMaskCopy[entry.getOne()] = false;
+                        }
+
+                        arr.add(entry.getOne());
+                    } else { // create new trajectory
+                        // truth does not change (since each trajectory needs a truth)
+                        IntArrayList arr = new IntArrayList();
+                        arr.add(entry.getOne());
+                        trajectoriesCopy.put(newTrajectoryHash++, arr);
                     }
                 }
 
-                if (maxProb > 0.5) { // add to trajectory
-
-                } else { // create new trajectory
-
-                }
+                double s = getTrueScore(truthsCopy.toArray(), repeatMaskCopy) * removalScore;
             }
 
             System.out.println(secondaryPass.blinkDist.m_mat[-1]);
