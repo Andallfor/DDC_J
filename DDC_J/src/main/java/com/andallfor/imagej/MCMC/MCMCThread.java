@@ -222,6 +222,7 @@ public class MCMCThread implements Runnable {
         }
 
         double score = prepare();
+        System.out.println(getTrueScore(truthIndexes.toArray(), repeatMask));
 
         int iterations = 0;
 
@@ -229,7 +230,7 @@ public class MCMCThread implements Runnable {
         // sort this list by the top score. then for each score, figure out what action would be needed to accomplish it,
         // calculate the odds of it happening, then set that as the new score
         int ddtClamp = secondaryPass.blinkDist.m_mat[0].length;
-        int savedValues = 20;
+        int savedValues = 50;
         IntDoubleHashMap scores = new IntDoubleHashMap(savedValues + 1); // ind, score
         while (true) {
             int[] truths = truthIndexes.toArray();
@@ -272,11 +273,16 @@ public class MCMCThread implements Runnable {
 
             // figure out the action needed
             // the goal is to make the move that changes the least
+
+            MutableIntSet _tc = null;
+            HashMap<Integer, IntArrayList> _t = null;
+            boolean[] _rmc = null;
+            int[] _ptc = null;
+            double maxActionScore = 0.001;
+            double trueScoreChange = 0;
+
             
             for (IntDoublePair entry : scores.keyValuesView()) {
-
-                if (repeatMask[entry.getOne()]) continue;
-
                 /*
                  * Regardless of whether our end goal is to include or exclude a point, we will always have to remove a point from a trajectory. Removing a point is in the name. When adding a 
                  *   point however, because every "action" will always change a truth, adding a point will add a truth, and since each trajectory can only have one truth, we will need to
@@ -289,19 +295,21 @@ public class MCMCThread implements Runnable {
                 for (Entry<Integer, IntArrayList> e : trajectories.entrySet()) trajectoriesCopy.put(e.getKey(), new IntArrayList(e.getValue().toArray()));
                 boolean[] repeatMaskCopy = new boolean[repeatMask.length];
                 System.arraycopy(repeatMask, 0, repeatMaskCopy, 0, repeatMask.length);
+                int[] p2TrajectoryCopy = new int[p2.trajectories.length];
+                System.arraycopy(p2.trajectories, 0, p2TrajectoryCopy, 0, p2.trajectories.length);
 
                 double removalScore = 1; // maximize cost [0, 1]
-                int stKey = p2.trajectories[entry.getOne()];
+                int stKey = p2TrajectoryCopy[entry.getOne()];
                 IntArrayList srcTrajectory = trajectories.get(stKey);
 
 
-                System.out.println("Start state");
-                System.out.println("point of interest: " + entry.getOne());
-                System.out.println("p frame: " + frame[entry.getOne()]);
-                System.out.println("source trajectory: " + srcTrajectory);
-                System.out.print("source trajectory frames: ");
-                srcTrajectory.forEach((x) -> {System.out.print(frame[x] + " ");});
-                System.out.println("\n\n");
+                //System.out.println("Start state");
+                //System.out.println("point of interest: " + entry.getOne());
+                //System.out.println("p frame: " + frame[entry.getOne()]);
+                //System.out.println("source trajectory: " + srcTrajectory);
+                //System.out.print("source trajectory frames: ");
+                //srcTrajectory.forEach((x) -> {System.out.print(frame[x] + " ");});
+                //System.out.println("\n\n");
 
 //=========================================================================================================================================================================================//
 //                                                                                    SOURCE TRAJECTORY                                                                                    //
@@ -356,18 +364,18 @@ public class MCMCThread implements Runnable {
                     trajectoriesCopy.remove(stKey);
                 }
 
-                if (trajectoriesCopy.containsKey(stKey)) {
-                    System.out.println("source trajectory: " + trajectoriesCopy.get(stKey));
-                    ArrayList<Integer> _truths = new ArrayList<>();
-                    for (int i = 0; i < trajectoriesCopy.get(stKey).size(); i++) {
-                        if (repeatMaskCopy[trajectoriesCopy.get(stKey).get(i)]) _truths.add(trajectoriesCopy.get(stKey).get(i));
-                    }
-
-                    System.out.println("truths: " + _truths);
-                } else {
-                    System.out.println("Source trajectory has been removed");
-                }
-                System.out.println("\n\n");
+                //if (trajectoriesCopy.containsKey(stKey)) {
+                //    System.out.println("source trajectory: " + trajectoriesCopy.get(stKey));
+                //    ArrayList<Integer> _truths = new ArrayList<>();
+                //    for (int i = 0; i < trajectoriesCopy.get(stKey).size(); i++) {
+                //        if (repeatMaskCopy[trajectoriesCopy.get(stKey).get(i)]) _truths.add(trajectoriesCopy.get(stKey).get(i));
+                //    }
+//
+                //    System.out.println("truths: " + _truths);
+                //} else {
+                //    System.out.println("Source trajectory has been removed");
+                //}
+                //System.out.println("\n\n");
                 
 
 //=========================================================================================================================================================================================//
@@ -408,8 +416,8 @@ public class MCMCThread implements Runnable {
                     }
                 }
 
-                System.out.println("probability: " + maxProb);
-                if (ttKey != -1) System.out.println("original: " + trajectoriesCopy.get(ttKey));
+                //System.out.println("probability: " + maxProb);
+                //if (ttKey != -1) System.out.println("original: " + trajectoriesCopy.get(ttKey));
 
 //================================//
 // PART B                         //
@@ -446,55 +454,79 @@ public class MCMCThread implements Runnable {
                     }
 
                     arr.add(entry.getOne());
+                    p2TrajectoryCopy[entry.getOne()] = ttKey;
 
-                    System.out.println("joined existing trajectory, key = " + ttKey);
-                    System.out.println("target: " + trajectoriesCopy.get(ttKey));
-                    ArrayList<Integer> _truths = new ArrayList<>();
-                    for (int i = 0; i < trajectoriesCopy.get(ttKey).size(); i++) {
-                        if (repeatMaskCopy[trajectoriesCopy.get(ttKey).get(i)]) _truths.add(trajectoriesCopy.get(ttKey).get(i));
-                    }
-                    System.out.println("truths: " + _truths);
-                    System.out.print("target trajectory frames: ");
-                    trajectoriesCopy.get(ttKey).forEach((x) -> {System.out.print(frame[x] + " ");});
+                    //System.out.println("joined existing trajectory, key = " + ttKey);
+                    //System.out.println("target: " + trajectoriesCopy.get(ttKey));
+                    //ArrayList<Integer> _truths = new ArrayList<>();
+                    //for (int i = 0; i < trajectoriesCopy.get(ttKey).size(); i++) {
+                    //    if (repeatMaskCopy[trajectoriesCopy.get(ttKey).get(i)]) _truths.add(trajectoriesCopy.get(ttKey).get(i));
+                    //}
+                    //System.out.println("truths: " + _truths);
+                    //System.out.print("target trajectory frames: ");
+                    //trajectoriesCopy.get(ttKey).forEach((x) -> {System.out.print(frame[x] + " ");});
                 } else { // create new trajectory
                     truthsCopy.add(entry.getOne());
                     repeatMaskCopy[entry.getOne()] = true;
 
                     IntArrayList arr = new IntArrayList();
                     arr.add(entry.getOne());
-                    trajectoriesCopy.put(newTrajectoryHash++, arr);
-                    System.out.println("created new trajectory");
-                    System.out.println("target: " + trajectoriesCopy.get(newTrajectoryHash - 1));
-                    System.out.println("is truth: " + repeatMaskCopy[entry.getOne()]);
+                    newTrajectoryHash++;
+                    trajectoriesCopy.put(newTrajectoryHash, arr);
+                    p2TrajectoryCopy[entry.getOne()] = newTrajectoryHash;
+                    //System.out.println("created new trajectory");
+                    //System.out.println("target: " + trajectoriesCopy.get(newTrajectoryHash - 1));
+                    //System.out.println("is truth: " + repeatMaskCopy[entry.getOne()]);
                 }
 
+                double _s = (getTrueScore(truthsCopy.toArray(), repeatMaskCopy) - score);
+                double s = _s * removalScore;
 
-
-                double s = (getTrueScore(truthsCopy.toArray(), repeatMaskCopy) - score) * removalScore;
-
-                System.out.println("\n\nbase score: " + s / removalScore);
-                System.out.println("trajectory score: " + removalScore);
-                System.out.println("final score: " + s);
-                System.out.println("==========================");
+                if (s > maxActionScore) {
+                    maxActionScore = s;
+                    _tc = truthsCopy;
+                    _t = trajectoriesCopy;
+                    _rmc = repeatMaskCopy;
+                    _ptc = p2TrajectoryCopy;
+                    trueScoreChange = _s;
+                }
             }
 
-            System.out.println(secondaryPass.blinkDist.m_mat[-1]);
+            if (maxActionScore == 0.001) break; // filter noise
 
-            // TODO make sure to update score!
+            truthIndexes = _tc;
+            trajectories = _t;
+            repeatMask = _rmc;
+            p2.trajectories = _ptc;
+            score += trueScoreChange;
 
             iterations++;
-
-            if (iterations > 10) break;
+            if (iterations > 1000) break;
         }
 
-        System.out.println(truthIndexes.size());
-    }
+        System.out.println(iterations); // -1.181857235043693e+06
 
-    private void invertPoint(int ind) {
-        if (!repeatMask[ind]) truthIndexes.add(ind);
-        else truthIndexes.remove(ind);
+        System.out.println(getTrueScore(truthIndexes.toArray(), repeatMask)); // -9.161418586138021e+05
 
-        repeatMask[ind] = !repeatMask[ind];
+        System.out.println(truthIndexes.size()); // -9.476069690052392e+05
+
+        // sanity check -1.023075690046217e+06
+        int c = 0;
+        for (int i = 0; i < repeatMask.length; i++) {
+            if (repeatMask[i]) c++;
+        }
+
+        System.out.println(c);
+
+        ArrayList<Integer> visited = new ArrayList<Integer>();
+        for (IntArrayList arr : trajectories.values()) {
+            for (int i = 0; i < arr.size(); i++) {
+                if (visited.contains(arr.get(i))) {
+                    System.out.println("WARNING COLLISION");
+                }
+                visited.add(arr.get(i));
+            }
+        }
     }
 
     public void run() {}

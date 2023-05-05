@@ -31,13 +31,23 @@ import com.jmatio.types.MLDouble;
  */
 
 public class DDC_ implements PlugIn {
-	private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
+	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
+	//private double maxLocDist = 2916.1458332736643;
+	//private double maxFrameDist = 40114;
+	//private double maxFrameValue = 40117;
 
-	private int N = 200;
-	private int res = 80;
-	private double maxLocDist = 2916.1458332736643;
-	private double maxFrameDist = 40114;
-	private double maxFrameValue = 40117;
+	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_2_dark_state_dense_Clusters_50per_3_per_ROI.mat";
+	//private double maxLocDist = 2885.857334407272;
+	//private double maxFrameDist = 45846;
+	//private double maxFrameValue = 45853;
+
+	private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_2_dark_state_No_Clusters_0per_0_per_ROI.mat";
+	private double maxLocDist = 2935.765956325998;
+	private double maxFrameDist = 41717;
+	private double maxFrameValue = 41725;
+
+	private int N = 140;
+	private int res = 60;
 
 	private MLCell LOC_FINAL, FRAME_INFO;
 
@@ -50,7 +60,7 @@ public class DDC_ implements PlugIn {
             IJ.showMessage("Invalid File Path");
             return;
         }
- 
+
 		LOC_FINAL = (MLCell) mfr.getMLArray("LocalizationsFinal");
 		FRAME_INFO = (MLCell) mfr.getMLArray("Frame_Information");
 		int numImages = FRAME_INFO.getDimensions()[1];
