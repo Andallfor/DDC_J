@@ -292,9 +292,9 @@ public class MCMCThread implements Runnable {
                 int stKey = p2.trajectories[entry.getOne()];
                 IntArrayList srcTrajectory = trajectories.get(stKey);
 
-                //===============================================================//
-                // SOURCE TRAJECTORY                                             //
-                //===============================================================//
+//=========================================================================================================================================================================================//
+//                                                                                    SOURCE TRAJECTORY                                                                                    //
+//=========================================================================================================================================================================================//
 
                 // check what would happen to the src trajectory
                 if (srcTrajectory.size() != 1) {
@@ -342,9 +342,9 @@ public class MCMCThread implements Runnable {
                     trajectoriesCopy.remove(stKey);
                 }
 
-                //===============================================================//
-                // TARGET TRAJECTORY                                             //
-                //===============================================================//
+//=========================================================================================================================================================================================//
+//                                                                                    TARGET TRAJECTORY                                                                                    //
+//=========================================================================================================================================================================================//
 
                 /*
                 * if applicable, figure out what would happen to the source trajectory. This step can be ignored if we are adding a truth because the source trajectory will always have at
@@ -358,6 +358,10 @@ public class MCMCThread implements Runnable {
                 
                 // if we are removing a truth
                 if (repeatMaskCopy[entry.getOne()]) {
+//================================//
+// PART A                         //
+//================================//
+
                     // get trajectory that will accept new point
                     double maxProb = 0;
                     Integer ttKey = 0;
@@ -389,6 +393,10 @@ public class MCMCThread implements Runnable {
                             ttKey = t.getKey();
                         }
                     }
+
+//================================//
+// PART B                         //
+//================================//
 
                     if (maxProb > 0.5) { // add to trajectory
                         IntArrayList arr = trajectoriesCopy.get(ttKey);
