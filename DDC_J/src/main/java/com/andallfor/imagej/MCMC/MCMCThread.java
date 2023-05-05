@@ -275,7 +275,7 @@ public class MCMCThread implements Runnable {
             
             for (IntDoublePair entry : scores.keyValuesView()) {
 
-                if (!repeatMask[entry.getOne()]) continue;
+                if (repeatMask[entry.getOne()]) continue;
 
                 /*
                  * Regardless of whether our end goal is to include or exclude a point, we will always have to remove a point from a trajectory. Removing a point is in the name. When adding a 
@@ -373,109 +373,99 @@ public class MCMCThread implements Runnable {
 //=========================================================================================================================================================================================//
 //                                                                                    TARGET TRAJECTORY                                                                                    //
 //=========================================================================================================================================================================================//
-
-                /*
-                * if applicable, figure out what would happen to the source trajectory. This step can be ignored if we are adding a truth because the source trajectory will always have at
-                *   least two elements, and the element that is changed is a repeat, not a truth. This is because we only call "add a truth" when we see a repeat, and repeats cannot be by
-                *   themselves, they have to be contained within a trajectory, and since each trajectory has to contain a truth, the source trajectory will always have at least 2 elements.
-                *   And since we take the lazy way (just creating a new trajectory for the truth), and we know that the source trajectory will not have any new truths, we can ignore this step.
-                * We only care about this step in order to determine what, if any, new truths will be added as a result of our proposed action. This is estimated by iterating through
-                *   trajectories and getting the trajectory that is most likely to accept us, if none are above the 0.5 threshold, just create our own trajectory. 
-                *   TODO maybe include the average score of each trajectory or something?
-                */
-                
-                // if we are removing a truth
-                if (repeatMaskCopy[entry.getOne()]) {
 //================================//
 // PART A                         //
 //================================//
+                // get trajectory that will accept new point
+                double maxProb = 0;
+                Integer ttKey = -1;
+                for (Entry<Integer, IntArrayList> t : trajectoriesCopy.entrySet()) {
+                    if (t.getKey() == stKey) continue;
 
-                    // get trajectory that will accept new point
-                    double maxProb = 0;
-                    Integer ttKey = -1;
-                    for (Entry<Integer, IntArrayList> t : trajectoriesCopy.entrySet()) {
-                        if (t.getKey() == stKey) continue;
-
-                        double avg = 0;
-                        IntArrayList arr = t.getValue();
-                        for (int i = 0; i < arr.size(); i++) {
-                            if (frame[arr.get(i)] == frame[entry.getOne()]) { // all frames must be unique within a trajectory
-                                avg = 0;
-                                break;
-                            }
-
-                            int r = (int) Math.abs(frame[arr.get(i)] - frame[entry.getOne()]);
-
-                            if (r >= N) continue;
-
-                            int c = (int) (util.dist(loc[arr.get(i)], loc[entry.getOne()]) / res) + 1;
-                            if (c > ddtClamp) c = ddtClamp;
-
-                            avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
+                    double avg = 0;
+                    IntArrayList arr = t.getValue();
+                    for (int i = 0; i < arr.size(); i++) {
+                        if (frame[arr.get(i)] == frame[entry.getOne()]) { // all frames must be unique within a trajectory
+                            avg = 0;
+                            break;
                         }
 
-                        avg /= (double) arr.size();
+                        int r = (int) Math.abs(frame[arr.get(i)] - frame[entry.getOne()]);
 
-                        if (avg > maxProb) {
-                            maxProb = avg;
-                            ttKey = t.getKey();
-                        }
+                        if (r >= N) continue;
+
+                        int c = (int) (util.dist(loc[arr.get(i)], loc[entry.getOne()]) / res) + 1;
+                        if (c > ddtClamp) c = ddtClamp;
+
+                        avg += secondaryPass.blinkDist.m_mat[r - 1][c - 1];
                     }
 
-                    System.out.println("probability: " + maxProb);
-                    if (ttKey != -1) System.out.println("original: " + trajectoriesCopy.get(ttKey));
+                    avg /= (double) arr.size();
+
+                    if (avg > maxProb) {
+                        maxProb = avg;
+                        ttKey = t.getKey();
+                    }
+                }
+
+                System.out.println("probability: " + maxProb);
+                if (ttKey != -1) System.out.println("original: " + trajectoriesCopy.get(ttKey));
 
 //================================//
 // PART B                         //
 //================================//
 
-                    if (maxProb > 0.5) { // add to trajectory
-                        IntArrayList arr = trajectoriesCopy.get(ttKey);
+                if (maxProb > 0.5) { // add to trajectory
+                    IntArrayList arr = trajectoriesCopy.get(ttKey);
 
-                        // check if the new point would become the new truth or not
-                        double minFrame = 10000000;
-                        int index = -1;
-                        for (int i = 0; i < arr.size(); i++) {
-                            if (frame[arr.get(i)] < minFrame) {
-                                minFrame = frame[arr.get(i)];
-                                index = i;
-                            }
+                    // check if the new point would become the new truth or not
+                    double minFrame = 10000000;
+                    int index = -1;
+                    for (int i = 0; i < arr.size(); i++) {
+                        if (frame[arr.get(i)] < minFrame) {
+                            minFrame = frame[arr.get(i)];
+                            index = i;
                         }
+                    }
 
-                        // check if we need to update that trajectories truth
-                        if (frame[entry.getOne()] < minFrame) {
-                            // remove the previous truth
-                            truthsCopy.remove(index);
-                            repeatMaskCopy[index] = false;
+                    // check if we need to update that trajectories truth
+                    if (frame[entry.getOne()] < minFrame) {
+                        // remove the previous truth
+                        truthsCopy.remove(arr.get(index));
+                        repeatMaskCopy[arr.get(index)] = false;
 
-                            // set the new point as the new truth, however dont need to actually do anything since the purpose of this segment is to remove the truth, but we want to keep it
-                            // so just dont change anything here
-                        } else { // the truth of the trajectory doesnt change
-                            // but still need to remove entry.getOne() (the entire purpose of this code)
+                        // set the new point as truth
+                        truthsCopy.add(entry.getOne()); // truthsCopy is a set, so we can add repeat
+                        repeatMaskCopy[entry.getOne()] = true;
+                    } else { // the truth of the trajectory doesnt change
+                        // if needed, set our original point to a repeat
+                        if (truthsCopy.contains(entry.getOne())) {
                             truthsCopy.remove(entry.getOne());
                             repeatMaskCopy[entry.getOne()] = false;
                         }
-
-                        arr.add(entry.getOne());
-
-                        System.out.println("joined existing trajectory, key = " + ttKey);
-                        System.out.println("target: " + trajectoriesCopy.get(ttKey));
-                        ArrayList<Integer> _truths = new ArrayList<>();
-                        for (int i = 0; i < trajectoriesCopy.get(ttKey).size(); i++) {
-                            if (repeatMaskCopy[trajectoriesCopy.get(ttKey).get(i)]) _truths.add(trajectoriesCopy.get(ttKey).get(i));
-                        }
-                        System.out.println("truths: " + _truths);
-                        System.out.print("target trajectory frames: ");
-                        trajectoriesCopy.get(ttKey).forEach((x) -> {System.out.print(frame[x] + " ");});
-                    } else { // create new trajectory
-                        // truth does not change (since each trajectory needs a truth)
-                        IntArrayList arr = new IntArrayList();
-                        arr.add(entry.getOne());
-                        trajectoriesCopy.put(newTrajectoryHash++, arr);
-                        System.out.println("created new trajectory");
-                        System.out.println("target: " + trajectoriesCopy.get(newTrajectoryHash - 1));
-                        System.out.println("is truth: " + repeatMaskCopy[entry.getOne()]);
                     }
+
+                    arr.add(entry.getOne());
+
+                    System.out.println("joined existing trajectory, key = " + ttKey);
+                    System.out.println("target: " + trajectoriesCopy.get(ttKey));
+                    ArrayList<Integer> _truths = new ArrayList<>();
+                    for (int i = 0; i < trajectoriesCopy.get(ttKey).size(); i++) {
+                        if (repeatMaskCopy[trajectoriesCopy.get(ttKey).get(i)]) _truths.add(trajectoriesCopy.get(ttKey).get(i));
+                    }
+                    System.out.println("truths: " + _truths);
+                    System.out.print("target trajectory frames: ");
+                    trajectoriesCopy.get(ttKey).forEach((x) -> {System.out.print(frame[x] + " ");});
+                } else { // create new trajectory
+                    truthsCopy.add(entry.getOne());
+                    repeatMaskCopy[entry.getOne()] = true;
+
+                    IntArrayList arr = new IntArrayList();
+                    arr.add(entry.getOne());
+                    trajectoriesCopy.put(newTrajectoryHash++, arr);
+                    System.out.println("created new trajectory");
+                    System.out.println("target: " + trajectoriesCopy.get(newTrajectoryHash - 1));
+                    System.out.println("is truth: " + repeatMaskCopy[entry.getOne()]);
                 }
 
 
