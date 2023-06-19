@@ -37,6 +37,7 @@ public class primaryPassCollector implements imagePassCallback {
 
         dOverallCount = new HashMap<Integer, Integer>();
         framesWithMulti = new HashSet<Integer>();
+        frameLookup = new HashMap<Double, ArrayList<Integer>>();
 
         // combine results from children
         for (int i = 0; i < threads.length; i++) {
@@ -75,7 +76,10 @@ public class primaryPassCollector implements imagePassCallback {
             else child.dOverallCount.forEach((k, v) -> dOverallCount.merge(k, v, (v1, v2) -> v1 + v2));
 
             // for use in trajectory linking
-            this.frameLookup = child.frameLookup;
+            for (Double key : child.frameLookup.keySet()) {
+                if (!frameLookup.containsKey(key)) frameLookup.put(key, new ArrayList<Integer>());
+                frameLookup.get(key).addAll(child.frameLookup.get(key));
+            }
         }
 
         dOverallHashOffset = ((primaryPassAction) threads[0]).dOverallHashOffset;

@@ -128,76 +128,78 @@ public class linkTrajectories {
 
         for (int x = 1; x <= DDC_.N; x++) {
             for (int i = 0; i < frame.length; i++) {
-                for (int j = i + 1; j < frame.length; j++) {
-                    //double locDist = util.dist(loc[i], loc[j]);
-                    double frameDist = Math.abs(frame[i] - frame[j]);
+                // consider approach where iterate over keys
+                // this allows us to apply the below check to all elements of a specific frame value rather than applying to each and every element
+                if (!frameLookup.containsKey(frame[i] + x)) continue;
 
-                    if (frameDist != x) continue;
+                ArrayList<Integer> targetIndices = new ArrayList<Integer>();
+                targetIndices = frameLookup.get(frame[i] + x);
 
-                    // this is similar to the second check (Math.abs(distMatrix[0]...)), but rather than check each element (or rather the mins and maxes) we check the start and end
-                    if (frameDist <= DDC_.N && frameDist != 0) {
-                        // in src, arr is sorted however it is not here so simulate it
-                        int first = i, last = j;
-                        if (frame[i] > frame[j]) {
-                            first = j;
-                            last = i;
-                        }
+                for (int _j = 0; _j < targetIndices.size(); _j++) {
+                    int j = targetIndices.get(_j);
 
-                        // start cannot have started another trajectory and last cannot be part of another trajectory
-                        if (!locBlink[last] && !locLinked[first]/*&& !locLinked[last]*/) {
-                            // trajectories can be both one element (not yet claimed) or an array (already a trajectory) to account for both we put the one element into an array
-                            // in cases where trajectory already exists, we do not need to account for the current value because by definition they will have already been included in the already existing trajectory
-                            t1 = writeValues(first, framerCache, distMatrix, 0, trajectories, _t1, trajectoryIndexMap);
-                            t2 = writeValues(last, framerCache, distMatrix, 2, trajectories, _t2, trajectoryIndexMap);
+                    // in src, arr is sorted however it is not here so simulate it
+                    // TODO check if this is actually needed
+                    int first = i, last = j;
+                    if (frame[i] > frame[j]) {
+                        first = j;
+                        last = i;
+                    }
 
-                            int min = (int) (distMatrix[0] < distMatrix[2] ? distMatrix[0] : distMatrix[2]);
-                            int max = (int) (distMatrix[1] > distMatrix[3] ? distMatrix[1] : distMatrix[3]);
+                    // start cannot have started another trajectory and last cannot be part of another trajectory
+                    if (!locBlink[last] && !locLinked[first]/*&& !locLinked[last]*/) {
+                        // trajectories can be both one element (not yet claimed) or an array (already a trajectory) to account for both we put the one element into an array
+                        // in cases where trajectory already exists, we do not need to account for the current value because by definition they will have already been included in the already existing trajectory
+                        t1 = writeValues(first, framerCache, distMatrix, 0, trajectories, _t1, trajectoryIndexMap);
+                        t2 = writeValues(last, framerCache, distMatrix, 2, trajectories, _t2, trajectoryIndexMap);
 
-                            // check and make sure max dist is < DDC_.N
-                            if (min - max > DDC_.N || max - min > DDC_.N) continue;
+                        int min = (int) (distMatrix[0] < distMatrix[2] ? distMatrix[0] : distMatrix[2]);
+                        int max = (int) (distMatrix[1] > distMatrix[3] ? distMatrix[1] : distMatrix[3]);
 
-                            // finished all the simple checks now go through and calc the new distances between first and last trajectories
-                            // the order of which framer and ddt are calculated do not matter, they just need to be calculated in the same way so that they "match up" with each other for when we apply their
-                            //      indices to deviation_in_prob
-                            double avg = 0;
-                            double totalLength = t1.length * t2.length;
+                        // check and make sure max dist is < DDC_.N
+                        if (min - max > DDC_.N || max - min > DDC_.N) continue;
 
-                            for (int ii = 0; ii < t1.length; ii++) {
-                                for (int jj = 0; jj < t2.length; jj++) {
-                                    // having to recalculate values isnt great but i cant think of a faster method :/
-                                    int r = (int) Math.abs(frame[t1[ii]] - frame[t2[jj]]);
-                                    int c = (int) (util.dist(loc[t1[ii]], loc[t2[jj]]) / DDC_.res) + 1;
-                                    if (c > ddtClamp) c = ddtClamp;
+                        // finished all the simple checks now go through and calc the new distances between first and last trajectories
+                        // the order of which framer and ddt are calculated do not matter, they just need to be calculated in the same way so that they "match up" with each other for when we apply their
+                        //      indices to deviation_in_prob
+                        double avg = 0;
+                        double totalLength = t1.length * t2.length;
 
-                                    avg += DDC_.blinkDist.m_mat[r - 1][c - 1];
-                                }
+                        for (int ii = 0; ii < t1.length; ii++) {
+                            for (int jj = 0; jj < t2.length; jj++) {
+                                // having to recalculate values isnt great but i cant think of a faster method :/
+                                int r = (int) Math.abs(frame[t1[ii]] - frame[t2[jj]]);
+                                int c = (int) (util.dist(loc[t1[ii]], loc[t2[jj]]) / DDC_.res) + 1;
+                                if (c > ddtClamp) c = ddtClamp;
+
+                                avg += DDC_.blinkDist.m_mat[r - 1][c - 1];
                             }
-
-                            if (avg / totalLength <= 0.5) continue;
-
-                            // is part of trajectory
-                            locBlink[last] = true;
-                            locLinked[first] = true;
-
-                            // for simplicity just combine trajectories into start. if performance is an issue set trajectories to the shortest trajectory
-                            int[] combinedIndexes = new int[t1.length + t2.length];
-                            System.arraycopy(t1, 0, combinedIndexes, 0, t1.length);
-                            System.arraycopy(t2, 0, combinedIndexes, t1.length, t2.length);
-                            if (trajectories[first] == 0) {
-                                trajectoryIndexMap.put(trajectoryHash, combinedIndexes);
-                                trajectories[first] = trajectoryHash;
-                                trajectoryHash++;
-                            } else trajectoryIndexMap.put(trajectories[first], combinedIndexes);
-
-                            // set all last trajectory references to start
-                            for (int ii = 0; ii < t2.length; ii++) trajectories[t2[ii]] = trajectories[first];
-
-                            // update framerCache with new mins and maxes
-                            framerCache[trajectories[first] - 1][0] = min;
-                            framerCache[trajectories[first] - 1][1] = max;
-
-                            nonBlink--;
                         }
+
+                        if (avg / totalLength <= 0.5) continue;
+
+                        // is part of trajectory
+                        locBlink[last] = true;
+                        locLinked[first] = true;
+
+                        // for simplicity just combine trajectories into start. if performance is an issue set trajectories to the shortest trajectory
+                        int[] combinedIndexes = new int[t1.length + t2.length];
+                        System.arraycopy(t1, 0, combinedIndexes, 0, t1.length);
+                        System.arraycopy(t2, 0, combinedIndexes, t1.length, t2.length);
+                        if (trajectories[first] == 0) {
+                            trajectoryIndexMap.put(trajectoryHash, combinedIndexes);
+                            trajectories[first] = trajectoryHash;
+                            trajectoryHash++;
+                        } else trajectoryIndexMap.put(trajectories[first], combinedIndexes);
+
+                        // set all last trajectory references to start
+                        for (int ii = 0; ii < t2.length; ii++) trajectories[t2[ii]] = trajectories[first];
+
+                        // update framerCache with new mins and maxes
+                        framerCache[trajectories[first] - 1][0] = min;
+                        framerCache[trajectories[first] - 1][1] = max;
+
+                        nonBlink--;
                     }
                 }
             }
