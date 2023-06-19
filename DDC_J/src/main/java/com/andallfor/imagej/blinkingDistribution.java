@@ -12,7 +12,7 @@ import org.orangepalantir.leastsquares.Fitter;
 public class blinkingDistribution {
     private int N, numImages;
 
-    public double[] x_overall, distribution_for_blink, d_scale_store;
+    public double[] x_overall, distribution_for_blink, d_scale_store, deviation_in_prob_mean;
     public double[][] m_mat;
 
     public blinkingDistribution(int N, int numImages) {
@@ -22,6 +22,13 @@ public class blinkingDistribution {
 
     public void run(primaryPassCollector[] threads) {
 		long s1 = System.currentTimeMillis();
+
+		// TODO: rewrite without matrices
+		// figure out why d_count_blink and d_count_no_blink do not match up- initially when i wrote this they did
+		// maybe some of the initial para have changed??
+		// also figure out change in _dist_for_blink (but prob connected to above)
+		// main issue is that m_mat is >0, >0, >0, 0.... but src is first 5 have values
+		// determine_blinking_distrbution5.m
 
 		double[] d_count_blink = new double[threads[0].binsBlink.length];
 		double[] d_count_no_blink = new double[d_count_blink.length]; // they have the same length
@@ -135,6 +142,12 @@ public class blinkingDistribution {
 		}
 
         distribution_for_blink = _distribution_for_blink.toDoubleArray()[0];
+
+		deviation_in_prob_mean = new double[m_mat.length];
+        for (int i = 0; i < m_mat.length; i++) {
+            for (int j = 0; j < m_mat[0].length; j++) deviation_in_prob_mean[i] += m_mat[i][j];
+            deviation_in_prob_mean[i] /= (double) m_mat[0].length;
+        }
 
 		long c = System.currentTimeMillis();
 		System.out.println("Blinking dist final section time: " + (c - finalTime));

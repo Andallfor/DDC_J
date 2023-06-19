@@ -12,6 +12,7 @@ public class primaryPassAction extends imagePassAction {
 
     public int[] binsBlink, binsNoBlink, density, dOverallHashOffset;
     public HashMap<Integer, Integer> dOverallCount;
+    public HashMap<Double, ArrayList<Integer>> frameLookup;
     public int[][] binsFittingBlink;
     public byte[] distMatrixValidator;
     public ArrayList<Integer> framesWithMulti; // stores indexes of frame value, not the actual frame value
@@ -48,6 +49,8 @@ public class primaryPassAction extends imagePassAction {
         double distanceDensityThreshold = res * 2;
 
         distMatrixValidator = new byte[(int) maxFrameDist - N];
+
+        frameLookup = new HashMap<Double, ArrayList<Integer>>();
 
         for (int i = start; i < end; i++) {
             for (int j = i + 1; j < frame.length; j++) {
@@ -91,6 +94,9 @@ public class primaryPassAction extends imagePassAction {
             Integer h = util.hashNDPoint(loc[i], res, dOverallBoundsHalf, dOverallHashOffset);
             if (dOverallCount.containsKey(h)) dOverallCount.put(h, dOverallCount.get(h) + 1);
             else dOverallCount.put(h, 1);
+
+            if (!frameLookup.containsKey(frame[i])) frameLookup.put(frame[i], new ArrayList<Integer>());
+            frameLookup.get(frame[i]).add(i);
         }
     }
 

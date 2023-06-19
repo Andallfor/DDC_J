@@ -31,25 +31,31 @@ import com.jmatio.types.MLDouble;
  */
 
 public class DDC_ implements PlugIn {
-	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
-	//private double maxLocDist = 2916.1458332736643;
-	//private double maxFrameDist = 40114;
-	//private double maxFrameValue = 40117;
+	private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
+	public static double maxLocDist = 2916.1458332736643;
+	public static double maxFrameDist = 40114;
+	public static double maxFrameValue = 40117;
 
 	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_2_dark_state_dense_Clusters_50per_3_per_ROI.mat";
 	//private double maxLocDist = 2885.857334407272;
 	//private double maxFrameDist = 45846;
 	//private double maxFrameValue = 45853;
 
-	private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_2_dark_state_No_Clusters_0per_0_per_ROI.mat";
-	private double maxLocDist = 2935.765956325998;
-	private double maxFrameDist = 41717;
-	private double maxFrameValue = 41725;
+	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_2_dark_state_No_Clusters_0per_0_per_ROI.mat";
+	//private double maxLocDist = 2935.765956325998;
+	//private double maxFrameDist = 41717;
+	//private double maxFrameValue = 41725;
 
-	private int N = 140;
-	private int res = 60;
+	public static int N = 140; // TODO refactor to use these static vars
+	public static int res = 60;
 
-	private MLCell LOC_FINAL, FRAME_INFO;
+	public static primaryPass firstPass;
+	public static secondaryPass secondPass;
+	public static blinkingDistribution blinkDist;
+
+	public static int[] expectedSize;
+
+	public static MLCell LOC_FINAL, FRAME_INFO;
 
     public void run(String arg) {
 		long trueS1 = System.currentTimeMillis();
@@ -64,16 +70,17 @@ public class DDC_ implements PlugIn {
 		LOC_FINAL = (MLCell) mfr.getMLArray("LocalizationsFinal");
 		FRAME_INFO = (MLCell) mfr.getMLArray("Frame_Information");
 		int numImages = FRAME_INFO.getDimensions()[1];
+		expectedSize = LOC_FINAL.getDimensions();
 
 		System.out.println("Mat file reading time: " + (System.currentTimeMillis() - trueS1) + "\n");
 
-		primaryPass firstPass = new primaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, maxFrameDist, maxFrameValue);
+		firstPass = new primaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, maxFrameDist, maxFrameValue);
 		firstPass.run();
 
-		blinkingDistribution blinkDist = new blinkingDistribution(N, numImages);
+		blinkDist = new blinkingDistribution(N, numImages);
 		blinkDist.run(firstPass.processedData);
 
-		secondaryPass secondPass = new secondaryPass(LOC_FINAL, FRAME_INFO, N, res, maxLocDist, firstPass.processedData, blinkDist);
+		secondPass = new secondaryPass();
 		secondPass.run();
 
 		String fancyString = "+ Starting on main MCMC algorithm after " + (System.currentTimeMillis() - trueS1) + " ms +";
@@ -81,11 +88,7 @@ public class DDC_ implements PlugIn {
 		System.out.println(fancyString);
 		System.out.println(new String(new char[fancyString.length()]).replace('\0', '='));
 
-		MCMCThread mcmc = new MCMCThread(
-			((MLDouble) FRAME_INFO.get(0)).getArray()[0], 
-			(((MLDouble) LOC_FINAL.get(0))).getArray(), res, N, firstPass.processedData[0], secondPass.processedData[0]);
-		
-		mcmc.MCMC();
+		MCMCThread mcmc = new MCMCThread(0, ((MLDouble) FRAME_INFO.get(0)).getArray()[0], ((MLDouble) LOC_FINAL.get(0)).getArray());
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }

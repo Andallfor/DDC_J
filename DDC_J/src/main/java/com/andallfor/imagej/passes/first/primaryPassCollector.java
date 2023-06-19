@@ -1,5 +1,6 @@
 package com.andallfor.imagej.passes.first;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.stream.IntStream;
@@ -19,6 +20,7 @@ public class primaryPassCollector implements imagePassCallback {
     public int dOverallBoundsHalf;
     public HashSet<Integer> framesWithMulti;
     public HashMap<Integer, Integer> dOverallCount; // position hash, num values
+    public HashMap<Double, ArrayList<Integer>> frameLookup;
 
     public primaryPassCollector(double max, int res, int N) {
         this.max = max;
@@ -71,6 +73,9 @@ public class primaryPassCollector implements imagePassCallback {
             // dOverallCount can be pretty big, so dont unnecessarily copy over each value
             if (threads.length == 1) dOverallCount = child.dOverallCount;
             else child.dOverallCount.forEach((k, v) -> dOverallCount.merge(k, v, (v1, v2) -> v1 + v2));
+
+            // for use in trajectory linking
+            this.frameLookup = child.frameLookup;
         }
 
         dOverallHashOffset = ((primaryPassAction) threads[0]).dOverallHashOffset;
