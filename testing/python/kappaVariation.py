@@ -5,7 +5,7 @@ import random
 c1 = np.zeros(4000)
 c2 = np.zeros(4000)
 
-for i in range(300000):
+for i in range(10000):
     if True:
         r = random.randint(0, c1.shape[0] - 1)
         
@@ -22,13 +22,14 @@ for i in range(300000):
         
         c1[c1 < -0.9] = -0.9
         
-        avg = np.mean(c1)
-        if avg < 0:
-            c1 += abs(avg)
-        else:
-            c1 -= abs(avg)
+        #avg = np.mean(c1)
+        #if avg < 0:
+        #    c1 += abs(avg)
+        #else:
+        #    c1 -= abs(avg)
     
     if True: # python brackets moment
+        continue
         r = random.randint(0, c2.shape[0] - 1)
         
         c2[r] += np.random.randn() * 0.1
@@ -52,6 +53,9 @@ for i in range(300000):
 
 kappa = c1 + c2
 kappa[kappa < -0.9999] = -0.9999
+
+print(len(np.unique(c1)))
+print(len(np.unique(c2)))
 
 fig, axes = plt.subplots(2, 1)
 

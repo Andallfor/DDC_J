@@ -15,7 +15,7 @@ public class primaryPassAction extends imagePassAction {
     public HashMap<Double, ArrayList<Integer>> frameLookup;
     public int[][] binsFittingBlink;
     public byte[] distMatrixValidator;
-    public ArrayList<Integer> framesWithMulti; // stores indexes of frame value, not the actual frame value
+    public ArrayList<Integer> framesWithMulti; // stores indices of frame value, not the actual frame value
     public int dOverallBoundsHalf;
 
     public primaryPassAction(double maxLocDist, double maxFrameDist, double maxFrameValue, int res, int N) {

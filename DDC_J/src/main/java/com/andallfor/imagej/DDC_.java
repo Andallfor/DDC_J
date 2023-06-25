@@ -46,7 +46,7 @@ public class DDC_ implements PlugIn {
 	//private double maxFrameDist = 41717;
 	//private double maxFrameValue = 41725;
 
-	public static int N = 140; // TODO refactor to use these static vars
+	public static int N = 140;
 	public static int res = 60;
 
 	public static primaryPass firstPass;
@@ -54,6 +54,9 @@ public class DDC_ implements PlugIn {
 	public static blinkingDistribution blinkDist;
 
 	public static int[] expectedSize;
+
+	public static double[][] frames;
+	public static double[][][] locs;
 
 	public static MLCell LOC_FINAL, FRAME_INFO;
 
@@ -89,6 +92,7 @@ public class DDC_ implements PlugIn {
 		System.out.println(new String(new char[fancyString.length()]).replace('\0', '='));
 
 		MCMCThread mcmc = new MCMCThread(0, ((MLDouble) FRAME_INFO.get(0)).getArray()[0], ((MLDouble) LOC_FINAL.get(0)).getArray());
+		mcmc.run();
 
 		System.out.println("Total time: " + (System.currentTimeMillis() - trueS1));
     }
