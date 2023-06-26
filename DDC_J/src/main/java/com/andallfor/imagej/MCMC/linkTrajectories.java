@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map.Entry;
 
 import org.orangepalantir.leastsquares.Fitter;
@@ -160,8 +159,8 @@ public class linkTrajectories {
     }
 
     public void restore() {
-        //c2.restore();
-        //c1.restore();
+        c2.restore();
+        c1.restore();
         frameLookup = deepCopyFrameLookup(frameLookupBackup);
     }
 
@@ -218,10 +217,7 @@ public class linkTrajectories {
 
         MatFileWriter mfw = new MatFileWriter();
         Collection<MLArray> data = new ArrayList<MLArray>();
-        double[][] vals = new double[1][trajectories.length];
-        for (int i = 0; i < trajectories.length; i++) vals[0][i] = trajectories[i];
 
-        data.add(new MLDouble("outTrajectories", vals));
         data.add(new MLDouble("out_non_blink_loc", non_blink_loc));
         data.add(new MLDouble("out_non_blink_frame", non_blink_frame));
         try {
@@ -229,8 +225,6 @@ public class linkTrajectories {
         } catch (IOException e) {
             System.out.println(e);
         }
-
-        System.out.println("r1: " + r1 + " r2: " + r2 + " r3: " + r3);
     }
 
     private void findProbDist() {

@@ -31,20 +31,25 @@ import com.jmatio.types.MLDouble;
  */
 
 public class DDC_ implements PlugIn {
-	private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
-	public static double maxLocDist = 2916.1458332736643;
-	public static double maxFrameDist = 40114;
-	public static double maxFrameValue = 40117;
+	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/User_Guide_Files/Simulation_2_dark_state_sparse_Clusters_10per_3_per_ROI.mat";
+	//public static double maxLocDist = 2916.1458332736643;
+	//public static double maxFrameDist = 40114;
+	//public static double maxFrameValue = 40117;
 
 	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_2_dark_state_dense_Clusters_50per_3_per_ROI.mat";
-	//private double maxLocDist = 2885.857334407272;
-	//private double maxFrameDist = 45846;
-	//private double maxFrameValue = 45853;
+	//public static double maxLocDist = 2885.857334407272;
+	//public static double maxFrameDist = 45846;
+	//public static double maxFrameValue = 45853;
 
 	//private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_2_dark_state_No_Clusters_0per_0_per_ROI.mat";
-	//private double maxLocDist = 2935.765956325998;
-	//private double maxFrameDist = 41717;
-	//private double maxFrameValue = 41725;
+	//public static double maxLocDist = 2935.765956325998;
+	//public static double maxFrameDist = 41717;
+	//public static double maxFrameValue = 41725;
+
+	private String filePath = "C:/Users/leozw/Desktop/code/matlab/ddc/Main_DDC_Folder/Figure_1_and_2_data_and_analyzed_data/Split_Simulation_Cont_Fil_2_dark_states.mat";
+	public static double maxLocDist = 2189.17957;
+	public static double maxFrameDist = 43947;
+	public static double maxFrameValue = 43950;
 
 	public static int N = 140;
 	public static int res = 60;
@@ -66,6 +71,7 @@ public class DDC_ implements PlugIn {
 		MatFileReader mfr = null;
         try {mfr = new MatFileReader(filePath);}
         catch (IOException e) {
+			System.out.println(e);
             IJ.showMessage("Invalid File Path");
             return;
         }

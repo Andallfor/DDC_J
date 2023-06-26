@@ -16,7 +16,7 @@ public class kappaVariation {
     }
 
     private NormalDistribution distribution;
-    public double[] kappa, kappaBackup;
+    private double[] kappa, kappaBackup;
     private int[] redirect;
     private boolean increasing;
 

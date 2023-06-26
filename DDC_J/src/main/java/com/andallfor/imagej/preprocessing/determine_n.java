@@ -47,6 +47,7 @@ public class determine_n implements PlugIn {
         MatFileReader mfr = null;
         try {mfr = new MatFileReader(filePath);}
         catch (IOException e) {
+            System.out.println(e);
             IJ.showMessage("Invalid File Path");
             return;
         }
